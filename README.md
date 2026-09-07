@@ -1,36 +1,41 @@
 # ValheimTune
 
-A server-side BepInEx plugin that makes a Valheim dedicated server with a big
-base and a handful of players feel like a small one. **Players install
-nothing.** Every change is on the server, the wire format is untouched, and
-vanilla clients connect exactly as before.
+Makes a Valheim dedicated server with a big base and a handful of players feel
+like a small one.
 
-Built by reading the dedicated-server code, measuring a real 690,000-object
-world with a 6-player base on a 4-core laptop, and fixing what the numbers
-pointed at. Every knob defaults to vanilla except the ones proven live.
+**Server-side only — players install nothing.** Every change is on the server,
+the wire format is untouched, and vanilla clients connect exactly as before.
 
-## What it does
+```
+game     0.221.12 (network version 36), dedicated server only
+needs    BepInEx 5.4.x
+status   live on the reference server since 2026-09-07:
+         690,000 objects, a 12,000-instance base, 2-6 players
+```
 
-| Problem in vanilla | What ValheimTune does | Measured on a 690k-object world |
+## Why
+
+Measured on that server, not modelled:
+
+| | Vanilla | ValheimTune |
 |---|---|---|
-| Server is hard-capped at 30 fps, so every sync round waits for a slow frame | `TargetFrameRate` knob | 30 -> 60 fps, ~3 % CPU |
-| Every sync round rescans every object near every player | **Dirty sets**: only objects that changed since the last round are considered; full scans only on join, zone change and every 30 s | 4.1 ms -> 0.07 ms per player per round |
-| 10 KB send window and a hidden 150 KB/s per-connection Steam cap | Both raised, all players served every 50 ms instead of one per frame | Join streams 2.8x faster |
-| Every update from every player is relayed to every other nearby player, ~17 times a second for anything that moves | **Relay throttle**: non-prioritised objects (fish, drifting items, pieces) re-sent to a given player at most every 200 ms; players and creatures exempt | ~55 % fewer relays with two players at the base |
-| Autosave clones the whole world on the main thread, then a writer thread reads memory the game keeps changing (a torn-save race) | **Sliced save**: the world is serialised on the main thread in 6 ms slices into a buffer; the writer thread only writes | 381 ms freeze in one frame -> 6 ms slices over ~350 frames |
-| During a join, every candidate object is fully sorted each round to pick the ~300 that fit | **Top-K selection**: a bounded heap keeps the best 512, no allocation | Join sync cost ~11 -> ~5.5 ms per call; closes a vanilla field-table leak on the way |
-| A game update silently runs old patch logic on new code | **Version gate**: replacement patches only run on a build listed in the config; anything else logs a warning and runs vanilla plus measurement | Tested both ways on the live server |
-| Hundreds of item drops and felled logs floating in water forever, each one a sync every round | One-shot scan and optional delete | 1,446 objects removed; idle inbound traffic 800 -> ~650 updates/s |
+| Sync scan, per player per round | 4.1 ms | **0.07 ms** |
+| Autosave | 381 ms freeze in one frame | **6 ms slices over ~350 frames** |
+| Join sync cost | ~11 ms per call | **~5.5 ms** |
+| Join stream rate | 1,261 objects/s | **3,617 objects/s** |
+| Server frame rate | 30 fps, hard-capped | **60 fps** |
+| Relayed updates, 2 players at a base | baseline | **~55 % fewer** |
 
-Plus a stats line every 10 seconds so you can see all of it in the server log.
+Every knob defaults to vanilla except the ones proven live. What each number
+comes from is in [How it works](#how-it-works).
 
 ## Requirements
 
 - Valheim **dedicated server** (Steam app 896660). Not the in-client host.
 - BepInEx 5.4.x for Valheim ([BepInExPack_Valheim](https://thunderstore.io/c/valheim/p/denikson/BepInExPack_Valheim/)).
-- Game version listed in `[Compat] KnownGoodBuilds` (currently `0.221.12`,
-  network version 36). On any other version the plugin runs in vanilla +
-  measurement mode and says so in the log.
+- Game version listed in `[Compat] KnownGoodBuilds` (currently `0.221.12`).
+  On any other version the plugin runs in vanilla + measurement mode and says
+  so in the log.
 
 ## Install
 
@@ -46,13 +51,10 @@ Plus a stats line every 10 seconds so you can see all of it in the server log.
 [ValheimTune] SendZDOs window 10240/2048, 3 constants replaced (expected 3)
 ```
 
-Then set the knobs you want. Most take effect within 5 seconds without a
-restart (marked *runtime* below).
-
 ### Recommended settings
 
-What runs on the reference server. Apply one at a time and read the stats
-line between changes.
+What runs on the reference server. Apply one at a time and read the stats line
+between changes. Most knobs take effect within 5 seconds without a restart.
 
 ```ini
 [Server]
@@ -70,7 +72,47 @@ SendRateMaxBytesPerSec = 1048576
 
 `DirtySets`, `SlicedSave` and `TopKSort` are already on by default.
 
-## Config reference
+## Reading the stats line
+
+Every `LogIntervalSeconds`, prefixed `[ValheimTune]`:
+
+```
+frame avg 16.7 max 17.0 ms (60 fps) | syncList avg 0.07 max 0.20 ms | send avg 0.10 ms
+| Z max 11418 | peer-sends 400 | zdos/s sent 430 recv 1000 | peers 2
+| marks 15750 full 0 dirtyRounds 399 deferred 8300 drained 12 | meshSkips 0
+recv by prefab (7848 in window): Fish1=1833 Fish2=1315 ...
+hot objects: Wood=69@(-327,-631) ...
+```
+
+<details>
+<summary><b>What each field means</b></summary>
+
+| Field | Meaning | Healthy |
+|---|---|---|
+| frame | main-thread frame time | avg at your target, max under ~35 ms except during a join |
+| syncList | time per candidate search, per player per round | ~0.1 ms steady, a few ms during a join |
+| Z max | largest candidate set seen in a full scan | scales with your base |
+| peer-sends | send calls in the window (rounds x players) | ~200 per player per 10 s with `AllPeersPerRound` |
+| zdos/s sent / recv | last-second counters | recv is what your players' clients push; sent is the relay |
+| marks | change-hook hits in the window | non-zero with players on; 0 means the hook is dead and the watchdog will fall back |
+| full / dirtyRounds | full scans vs dirty-set rounds | full ~0, one per `ReconcileSeconds` per player |
+| deferred | relays held back by the throttle | large is good |
+| drained | candidates from the last dirty round | |
+| meshSkips | render-mesh rebuilds skipped by `SkipRenderMesh` | climbs while players explore new ground, 0 elsewhere |
+| DISABLED | appended if the watchdog tripped | should never appear |
+| recv by prefab | which prefabs your players are pushing | tells you what to clean up |
+| hot objects | per-object counts with world x,z | find the log that never stops rolling |
+
+</details>
+
+During a save you will also see:
+
+```
+[ValheimTune] sliced snapshot: 687131 ZDOs (0 skipped as destroyed mid-save), 30320 KB, 352 frames, 5956 ms total
+```
+
+<details>
+<summary><b>Full config reference</b> — every knob, default, and when it takes effect</summary>
 
 *runtime* = re-read every `ConfigReloadSeconds` without a restart.
 *patch-time* = read once when the plugin loads; restart to change.
@@ -101,43 +143,32 @@ SendRateMaxBytesPerSec = 1048576
 | `[Compat] KnownGoodBuilds` | 0.221.12 | patch-time | Game versions this plugin build was verified against. Comma-separated. |
 | `[Compat] DisableOnUnknownBuild` | true | patch-time | On an unlisted version, run only measurement, the send-rate cap and the constant swap. |
 
-## Reading the stats line
-
-Every `LogIntervalSeconds`, prefixed `[ValheimTune]`:
-
-```
-frame avg 16.7 max 17.0 ms (60 fps) | syncList avg 0.07 max 0.20 ms | send avg 0.10 ms
-| Z max 11418 | peer-sends 400 | zdos/s sent 430 recv 1000 | peers 2
-| marks 15750 full 0 dirtyRounds 399 deferred 8300 drained 12 | meshSkips 0
-recv by prefab (7848 in window): Fish1=1833 Fish2=1315 ...
-hot objects: Wood=69@(-327,-631) ...
-```
-
-| Field | Meaning | Healthy |
-|---|---|---|
-| frame | main-thread frame time | avg at your target, max under ~35 ms except during a join |
-| syncList | time per candidate search, per player per round | ~0.1 ms steady, a few ms during a join |
-| Z max | largest candidate set seen in a full scan | scales with your base |
-| peer-sends | send calls in the window (rounds x players) | ~200 per player per 10 s with `AllPeersPerRound` |
-| zdos/s sent / recv | last-second counters | recv is what your players' clients push; sent is the relay |
-| marks | change-hook hits in the window | non-zero with players on; 0 means the hook is dead and the watchdog will fall back |
-| full / dirtyRounds | full scans vs dirty-set rounds | full ~0, one per `ReconcileSeconds` per player |
-| deferred | relays held back by the throttle | large is good |
-| drained | candidates from the last dirty round | |
-| meshSkips | render-mesh rebuilds skipped by `SkipRenderMesh` | climbs while players explore new ground, 0 elsewhere |
-| DISABLED | appended if the watchdog tripped | should never appear |
-| recv by prefab | which prefabs your players are pushing | tells you what to clean up |
-| hot objects | per-object counts with world x,z | find the log that never stops rolling |
-
-During a save you will also see:
-
-```
-[ValheimTune] sliced snapshot: 687131 ZDOs (0 skipped as destroyed mid-save), 30320 KB, 352 frames, 5956 ms total
-```
+</details>
 
 ## How it works
 
-Harmony patches on 13 methods of the dedicated-server assembly, all in
+Each row is one measured problem and the patch that answers it.
+
+<details>
+<summary><b>Problem by problem</b></summary>
+
+| Problem in vanilla | What ValheimTune does | Measured on a 690k-object world |
+|---|---|---|
+| Server is hard-capped at 30 fps, so every sync round waits for a slow frame | `TargetFrameRate` knob | 30 -> 60 fps, ~3 % CPU |
+| Every sync round rescans every object near every player | **Dirty sets**: only objects that changed since the last round are considered; full scans only on join, zone change and every 30 s | 4.1 ms -> 0.07 ms per player per round |
+| 10 KB send window and a hidden 150 KB/s per-connection Steam cap | Both raised, all players served every 50 ms instead of one per frame | Join streams 2.8x faster |
+| Every update from every player is relayed to every other nearby player, ~17 times a second for anything that moves | **Relay throttle**: non-prioritised objects (fish, drifting items, pieces) re-sent to a given player at most every 200 ms; players and creatures exempt | ~55 % fewer relays with two players at the base |
+| Autosave clones the whole world on the main thread, then a writer thread reads memory the game keeps changing (a torn-save race) | **Sliced save**: the world is serialised on the main thread in 6 ms slices into a buffer; the writer thread only writes | 381 ms freeze in one frame -> 6 ms slices over ~350 frames |
+| During a join, every candidate object is fully sorted each round to pick the ~300 that fit | **Top-K selection**: a bounded heap keeps the best 512, no allocation | Join sync cost ~11 -> ~5.5 ms per call; closes a vanilla field-table leak on the way |
+| A game update silently runs old patch logic on new code | **Version gate**: replacement patches only run on a build listed in the config; anything else logs a warning and runs vanilla plus measurement | Tested both ways on the live server |
+| Hundreds of item drops and felled logs floating in water forever, each one a sync every round | One-shot scan and optional delete | 1,446 objects removed; idle inbound traffic 800 -> ~650 updates/s |
+
+</details>
+
+<details>
+<summary><b>The 14 patched methods</b></summary>
+
+Harmony patches on 14 methods of the dedicated-server assembly, all in
 `Patches/`:
 
 | Method | Patch | Purpose |
@@ -150,7 +181,10 @@ Harmony patches on 13 methods of the dedicated-server assembly, all in
 | `ZRpc.Update` | prefix | Receive cap |
 | `ZSteamSocket.RegisterGlobalCallbacks` | postfix | Steam send rate |
 | `ZDO.Deserialize` | postfix | Per-prefab tally |
+| `Heightmap.RebuildRenderMesh` | prefix | Skip the render mesh on a headless server |
 | `ZNet.SaveWorld`, `ZDOMan.PrepareSave`, `ZDOMan.SaveAsync`, `ZDOExtraData.PrepareSave` | prefix | Sliced save |
+
+</details>
 
 Every patch that *replaces* game logic checks the version gate first and runs
 vanilla when it is off. Measurement, the send-rate cap and the constant swap
@@ -197,12 +231,8 @@ See [`docs/PORTING.md`](docs/PORTING.md). Short version: the plugin notices,
 switches its replacement patches off, and logs it. Players play vanilla plus
 the stats line until a rebuild adds the new version to `KnownGoodBuilds`.
 
-## Status
-
-Live on the reference server since 2026-09-07: 690k objects, a 12k-instance
-base, 2-6 players. See `CHANGELOG.md`. Reports from other servers welcome,
-with the stats line.
-
 ## License
 
 MIT. Not affiliated with Iron Gate or Coffee Stain.
+
+Reports from other servers welcome — open an issue with your stats line.
