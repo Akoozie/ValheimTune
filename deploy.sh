@@ -1,7 +1,7 @@
 #!/bin/sh
-# Build, ship to the homelab server, restart it, show the plugin's log lines.
+# Build, copy to the server, restart it, show the plugin's log lines.
 # Restarting takes the world through a full save (150 s grace). Warn players first.
-# Needs Tailscale SSH approved for this desktop (browser check on first use).
+# Needs ssh access to the host; set HOST below or in the environment.
 set -e
 HOST="${HOST:?set HOST=user@your-server}"
 # Container name and plugin path assume the lloesche/valheim-server image; adapt the docker lines otherwise.
