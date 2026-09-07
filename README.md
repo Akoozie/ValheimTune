@@ -42,7 +42,7 @@ Plus a stats line every 10 seconds so you can see all of it in the server log.
 4. Check the log for:
 
 ```
-[ValheimTune] 0.4.1 loaded on game 0.221.12 (net 36), 13 methods patched, replacements on
+[ValheimTune] 0.4.2 loaded on game 0.221.12 (net 36), 13 methods patched, replacements on
 [ValheimTune] SendZDOs window 10240/2048, 3 constants replaced (expected 3)
 ```
 
