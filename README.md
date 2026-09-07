@@ -72,6 +72,58 @@ SendRateMaxBytesPerSec = 1048576
 
 `DirtySets`, `SlicedSave` and `TopKSort` are already on by default.
 
+### If the log says `replacements OFF`
+
+```
+[ValheimTune] game 0.222.x not in KnownGoodBuilds (0.221.12): replacement
+patches inactive, running vanilla + measurement
+```
+
+Your server updated to a game build this plugin has not been verified against.
+Nothing is broken — the version gate did its job and refused to run old patch
+logic against new code. But the plugin is now only printing the stats line; none
+of the optimizations are running. **The log line tells you your exact game
+version**, which is what the gate compares against.
+
+You have three options.
+
+**1. Wait for a release that lists your version.** The safe one. Check the
+[releases page](https://github.com/Akoozie/ValheimTune/releases); each one names
+the game build it was verified against. Meanwhile the stats line still works, so
+you keep the diagnostics.
+
+**2. Force it on and accept the risk.** Add your version to the list:
+
+```ini
+[Compat]
+KnownGoodBuilds = 0.221.12, 0.222.3
+```
+
+Restart. Harmony will refuse to patch any method whose signature changed and log
+it, and the constant-swap transpiler self-aborts unless it matches exactly the
+three constants it expects — so a *shape* change fails loudly rather than
+silently. What it cannot catch is a method whose shape is unchanged but whose
+*semantics* moved.
+
+**Back up your world first, and turn the save patch off before you do this:**
+
+```ini
+[Save]
+SlicedSave = false
+```
+
+`SlicedSave` replaces the world-save path. Every other patch affects
+performance; that one affects your world file, and it is the only one where
+being wrong costs you something you cannot restart your way out of.
+
+**3. Build it yourself against the new server assemblies.** See
+[Building from source](#building-from-source). If it works, please open an issue
+saying which game build — that is what gets it into the next release.
+
+Reports welcome either way. `DisableOnUnknownBuild = false` is the blunt version
+of option 2; it forces every replacement patch on for *any* version, and carries
+the same caveat with none of the record of what you tested.
+
 ## Reading the stats line
 
 Every `LogIntervalSeconds`, prefixed `[ValheimTune]`:
