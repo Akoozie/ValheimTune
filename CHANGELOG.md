@@ -2,6 +2,9 @@
 
 All against dedicated-server build 21981590 (game 0.221.12, network version 36).
 
+## 0.4.2 — 2026-09-07
+- Watchdog false trip fixed: "received" is now counted by our own `ZDO.Deserialize` postfix over the same window as the marks, instead of the game's one-second-lagging counter, which tripped it when the last player logged out (live at 21:00 with three players on, B1 and the throttle silently off). The watchdog also re-arms itself when marks reappear.
+
 ## 0.4.1 — 2026-09-07
 - `TopKSort` default on after a live join: syncList ~11 -> ~5.5 ms avg, 24-32 -> 12-20 ms max. Gate tested both ways on the live server.
 

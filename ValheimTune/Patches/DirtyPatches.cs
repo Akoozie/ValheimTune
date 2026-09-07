@@ -22,6 +22,11 @@ namespace ValheimTune.Patches
         // Watchdog's own counter: incremented alongside MarksData but never touched by
         // ResetCounters(), so Plugin's watchdog window doesn't race the log-cadence reset.
         public static long WatchdogMarks;
+        // ZDOs deserialized from the network in the watchdog window (bumped by MeasurePatches.DeserializePostfix).
+        // Every such ZDO also goes through the DataRevision setter in RPC_ZDOData, so "recv > 0 and marks == 0"
+        // over the SAME window is a dead hook, not a lagging game counter (the old ZDOMan.GetRecvZDOs()
+        // check lagged a second and false-tripped when the last player logged out).
+        public static long WatchdogRecv;
 
         // ZDOPeer instances are created in ZDOMan.AddPeer and dropped in RemovePeer; a weak table
         // means we never have to hook either.
@@ -69,6 +74,11 @@ namespace ValheimTune.Patches
         // Pure so it's unit-testable without a live Unity/ZDOMan instance.
         public static bool WatchdogShouldTrip(bool dirtySetsOn, bool disabled, bool recvSeen, long marksInWindow) =>
             dirtySetsOn && !disabled && recvSeen && marksInWindow == 0;
+
+        // Marks while disabled prove the hook is alive: re-arm. The next active round forces a full scan
+        // per peer (DirtyPeerState.NeedsFullScan sees the inactive->active edge), so nothing is missed.
+        public static bool WatchdogShouldRearm(bool disabled, long marksInWindow) =>
+            disabled && marksInWindow > 0;
 
         private static readonly List<ZDOID> s_ids = new List<ZDOID>(256);
         private static int s_relayMinMs;

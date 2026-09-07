@@ -54,6 +54,7 @@ namespace ValheimTune.Patches
         private static void DeserializePostfix(ZDO __instance)
         {
             Recv.Add(__instance.GetPrefab());
+            DirtyPatches.WatchdogRecv++;
             ZDOID id = __instance.m_uid;
             s_hot.TryGetValue(id, out var h);
             s_hot[id] = (h.count + 1, __instance.GetPrefab(), __instance.GetPosition());

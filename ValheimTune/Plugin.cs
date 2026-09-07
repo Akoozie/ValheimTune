@@ -10,7 +10,7 @@ namespace ValheimTune
     public class Plugin : BaseUnityPlugin
     {
         public const string Guid = "akoozie.valheimtune";
-        public const string Version = "0.4.1";
+        public const string Version = "0.4.2";
         private const float WatchdogWindowSeconds = 10f;
         public static ManualLogSource Log;
         public static Plugin Instance;
@@ -18,7 +18,6 @@ namespace ValheimTune
         private float _logTimer;
         private float _reloadTimer;
         private float _wdTimer;
-        private bool _wdRecvSeen;
 
         private void Awake()
         {
@@ -50,17 +49,22 @@ namespace ValheimTune
             }
             var zdoMan = ZDOMan.instance;
             int recvNow = zdoMan == null ? 0 : zdoMan.GetRecvZDOs();
-            if (zdoMan != null && zdoMan.GetRecvZDOs() > 0) _wdRecvSeen = true;
             _wdTimer += UnityEngine.Time.unscaledDeltaTime;
             if (_wdTimer >= WatchdogWindowSeconds)
             {
-                if (Patches.DirtyPatches.WatchdogShouldTrip(Cfg.DirtySets.Value, Patches.DirtyPatches.Disabled, _wdRecvSeen, Patches.DirtyPatches.WatchdogMarks))
+                long wdRecv = Patches.DirtyPatches.WatchdogRecv, wdMarks = Patches.DirtyPatches.WatchdogMarks;
+                if (Patches.DirtyPatches.WatchdogShouldTrip(Cfg.DirtySets.Value, Patches.DirtyPatches.Disabled, wdRecv > 0, wdMarks))
                 {
                     Patches.DirtyPatches.Disabled = true;
-                    Log.LogError("[ValheimTune] DirtySets: revision hook never fired while ZDOs were received; falling back to vanilla scanning. The ZDO revision setters are probably inlined on this Mono build.");
+                    Log.LogError($"[ValheimTune] DirtySets: {wdRecv} ZDOs deserialized in {WatchdogWindowSeconds:F0} s but the revision hook fired 0 times; falling back to vanilla scanning. The ZDO revision setters are probably inlined on this Mono build.");
+                }
+                else if (Patches.DirtyPatches.WatchdogShouldRearm(Patches.DirtyPatches.Disabled, wdMarks))
+                {
+                    Patches.DirtyPatches.Disabled = false;
+                    Log.LogWarning($"[ValheimTune] DirtySets: revision hook fired {wdMarks} times while disabled; re-armed (full scan per peer on the next round).");
                 }
                 Patches.DirtyPatches.WatchdogMarks = 0;
-                _wdRecvSeen = false;
+                Patches.DirtyPatches.WatchdogRecv = 0;
                 _wdTimer = 0f;
             }
             int every = Cfg.LogIntervalSeconds.Value;
