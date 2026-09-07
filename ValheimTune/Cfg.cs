@@ -23,6 +23,7 @@ namespace ValheimTune
         public static ConfigEntry<bool> DisableOnUnknownBuild;
         public static ConfigEntry<bool> TopKSort;
         public static ConfigEntry<int> TopK;
+        public static ConfigEntry<bool> ServerSkipRenderMesh;
 
         public static void Bind(ConfigFile c)
         {
@@ -36,7 +37,7 @@ namespace ValheimTune
             SendRateMin      = c.Bind("Steam", "SendRateMinBytesPerSec", 153600, "Leave at vanilla so the estimator can back off on loss.");
             MaxPacketsPerPeerPerFrame = c.Bind("Receive", "MaxPacketsPerPeerPerFrame", 0, "Stop draining one peer's socket after this many packets in a frame; the rest wait in Steam's queue. 0 = vanilla (unlimited). Try 64.");
             TargetFrameRate = c.Bind("Server", "TargetFrameRate", 0, "Application.targetFrameRate for the headless server. 0 = do not touch. Round period is 0.05 + players/fps, so 30 -> 60 doubles the sync rate at 6 players. Costs CPU.");
-            FloatingDropsRun = c.Bind("Cleanup", "FloatingDropsRun", false, "One-shot trigger: set true to scan for item drops floating in water. The plugin runs it on the next config reload and sets this back to false. Stalls the main thread for a few hundred ms on a big world (M6).");
+            FloatingDropsRun = c.Bind("Cleanup", "FloatingDropsRun", false, "One-shot trigger: set true to scan for item drops floating in water. The plugin runs it on the next config reload and sets this back to false. Measured ~50 ms of main-thread stall on a 698k-ZDO world (one 67 ms frame, 2026-09-07).");
             FloatingDropsDelete = c.Bind("Cleanup", "FloatingDropsDelete", false, "When a scan runs with this true, the found items are DELETED (server takes ownership and destroys them; clients see them vanish). Leave false for a dry run that only logs counts.");
             HotObjectsIgnore = c.Bind("Measure", "HotObjectsIgnore", "Player,Fish1,Fish2,Fish3", "Comma-separated prefab names left out of the hot-objects line (things that are expected to move).");
             DirtySets        = c.Bind("Sync", "DirtySets", true, "B1: only consider changed ZDOs each round instead of rescanning the whole active area. Full scan on join, zone change, and every ReconcileSeconds.");
@@ -47,6 +48,7 @@ namespace ValheimTune
             KnownGoodBuilds = c.Bind("Compat", "KnownGoodBuilds", "0.221.12", "Game versions (Version.CurrentVersion) this build of the plugin was verified against. Comma-separated.");
             DisableOnUnknownBuild = c.Bind("Compat", "DisableOnUnknownBuild", true, "On a version not in KnownGoodBuilds, keep only measurement, the send-rate postfix and the constant swap; every replacement patch runs vanilla.");
             TopKSort = c.Bind("Sync", "TopKSort", true, "B2: bounded-heap selection of the objects that fit the send window instead of a full sort of every candidate. Only matters during joins, zone changes and the reconcile scan.");
+            ServerSkipRenderMesh = c.Bind("Server", "SkipRenderMesh", false, "B4a: skip Heightmap.RebuildRenderMesh on a dedicated server. The render mesh is rebuilt for every ghost zone a player explores and every terrain edit that loads with one, and never drawn on a -nographics process. Collision mesh untouched. Watch meshSkips on the stats line.");
             TopK     = c.Bind("Sync", "TopK", 0, new ConfigDescription("How many candidates to order per round. 0 = SendWindowBytes / 64 (512 at 32 KB), never below 64.", new AcceptableValueRange<int>(0, 8192)));
         }
     }

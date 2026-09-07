@@ -10,7 +10,7 @@ namespace ValheimTune
     public class Plugin : BaseUnityPlugin
     {
         public const string Guid = "akoozie.valheimtune";
-        public const string Version = "0.4.2";
+        public const string Version = "0.5.0";
         private const float WatchdogWindowSeconds = 10f;
         public static ManualLogSource Log;
         public static Plugin Instance;
@@ -68,7 +68,7 @@ namespace ValheimTune
                 _wdTimer = 0f;
             }
             int every = Cfg.LogIntervalSeconds.Value;
-            if (every <= 0) { MeasurePatches.ResetAll(); DirtyPatches.ResetCounters(); return; }
+            if (every <= 0) { MeasurePatches.ResetAll(); DirtyPatches.ResetCounters(); Patches.RenderMeshPatch.Skipped = 0; return; }
             _logTimer += UnityEngine.Time.unscaledDeltaTime;
             if (_logTimer < every) return;
             _logTimer = 0f;
@@ -81,7 +81,8 @@ namespace ValheimTune
                 $"syncList avg {MeasurePatches.SyncListMs.Avg:F2} max {MeasurePatches.SyncListMs.Max:F2} ms | " +
                 $"send avg {MeasurePatches.SendMs.Avg:F2} ms | Z max {MeasurePatches.MaxZ} | peer-sends {MeasurePatches.Rounds} | " +
                 $"zdos/s sent {sent} recv {recv} | peers {peers}" +
-                $" | marks {Patches.DirtyPatches.Marks} full {Patches.DirtyPatches.FullScans} dirtyRounds {Patches.DirtyPatches.DirtyRounds} deferred {Patches.DirtyPatches.Deferred} drained {Patches.DirtyPatches.LastDrained}{(Patches.DirtyPatches.Disabled ? " DISABLED" : "")}");
+                $" | marks {Patches.DirtyPatches.Marks} full {Patches.DirtyPatches.FullScans} dirtyRounds {Patches.DirtyPatches.DirtyRounds} deferred {Patches.DirtyPatches.Deferred} drained {Patches.DirtyPatches.LastDrained}{(Patches.DirtyPatches.Disabled ? " DISABLED" : "")}" +
+                $" | meshSkips {Patches.RenderMeshPatch.Skipped}");
             if (MeasurePatches.Recv.Total > 0)
             {
                 var sb = new System.Text.StringBuilder("[ValheimTune] recv by prefab (");
@@ -115,6 +116,7 @@ namespace ValheimTune
                     Log.LogInfo(hotSb.ToString());
                 }
             }
+            Patches.RenderMeshPatch.Skipped = 0;
             DirtyPatches.ResetCounters();
             MeasurePatches.ResetAll();
         }

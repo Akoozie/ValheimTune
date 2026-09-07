@@ -2,6 +2,9 @@
 
 All against dedicated-server build 21981590 (game 0.221.12, network version 36).
 
+## 0.5.0 — 2026-09-07
+- B4a skip render mesh (`[Server] SkipRenderMesh`, default off): prefix on `Heightmap.RebuildRenderMesh` that returns false on a dedicated server. The server regenerates a heightmap for every ghost zone a player explores (`ZoneSystem.SpawnZone` -> the zone prefab's `Heightmap.OnEnable`) and for every terrain edit that loads with one (`TerrainComp.Poke`); the render half is `(m_width+1)^2` vertices, colours, UVs and indices plus `RecalculateNormals`/`Tangents`/`Bounds` on a `-nographics` process. The collision mesh, paint mask and material instance are untouched, and every other read of `m_renderMesh` is null-guarded. New `meshSkips` counter on the stats line. Off until a live exploration run shows the counter climbing with nothing visibly wrong.
+
 ## 0.4.2 — 2026-09-07
 - Watchdog false trip fixed: "received" is now counted by our own `ZDO.Deserialize` postfix over the same window as the marks, instead of the game's one-second-lagging counter, which tripped it when the last player logged out (live at 21:00 with three players on, B1 and the throttle silently off). The watchdog also re-arms itself when marks reappear.
 

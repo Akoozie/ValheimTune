@@ -42,7 +42,7 @@ Plus a stats line every 10 seconds so you can see all of it in the server log.
 4. Check the log for:
 
 ```
-[ValheimTune] 0.4.2 loaded on game 0.221.12 (net 36), 13 methods patched, replacements on
+[ValheimTune] 0.5.0 loaded on game 0.221.12 (net 36), 14 methods patched, replacements on
 [ValheimTune] SendZDOs window 10240/2048, 3 constants replaced (expected 3)
 ```
 
@@ -80,6 +80,7 @@ SendRateMaxBytesPerSec = 1048576
 | `[Measure] LogIntervalSeconds` | 10 | runtime | Stats line cadence. 0 disables. |
 | `[Measure] ConfigReloadSeconds` | 5 | runtime | How often the cfg is re-read. |
 | `[Measure] HotObjectsIgnore` | Player,Fish1,Fish2,Fish3 | runtime | Prefabs left out of the hot-objects line. |
+| `[Server] SkipRenderMesh` | false | runtime | Skip the heightmap render-mesh rebuild on a dedicated server; it is built for every zone a player explores and never drawn. Collision mesh untouched. |
 | `[Server] TargetFrameRate` | 0 | runtime | Override the server's hard-coded 30 fps. 0 = leave it. Sync round period is `0.05 s + players / fps`. |
 | `[Sync] SendWindowBytes` | 10240 | patch-time | Bytes in flight per player before the server stops queueing. Vanilla 10240. |
 | `[Sync] MinHeadroomBytes` | 2048 | patch-time | Below this much free window the player is skipped this round. Keep below the window. |
@@ -95,7 +96,7 @@ SendRateMaxBytesPerSec = 1048576
 | `[Receive] MaxPacketsPerPeerPerFrame` | 0 | runtime | Stop draining one player's socket after this many packets in a frame. 0 = vanilla. Try 64 if one player's burst ever stalls the rest. |
 | `[Save] SlicedSave` | **true** | runtime | Serialise the world on the main thread in slices; the writer thread never reads live game memory. |
 | `[Save] SaveSliceMs` | 6 | runtime | Main-thread milliseconds per frame spent serialising during a save. |
-| `[Cleanup] FloatingDropsRun` | false | one-shot | Set true to scan for item drops and felled logs floating in water. Resets itself. Dry run unless the next key is true. |
+| `[Cleanup] FloatingDropsRun` | false | one-shot | Set true to scan for item drops and felled logs floating in water. Resets itself. Dry run unless the next key is true. ~50 ms main-thread stall on a 698k-ZDO world. |
 | `[Cleanup] FloatingDropsDelete` | false | runtime | With `Run`: delete what the scan finds. Hourly backups first. |
 | `[Compat] KnownGoodBuilds` | 0.221.12 | patch-time | Game versions this plugin build was verified against. Comma-separated. |
 | `[Compat] DisableOnUnknownBuild` | true | patch-time | On an unlisted version, run only measurement, the send-rate cap and the constant swap. |
@@ -107,7 +108,7 @@ Every `LogIntervalSeconds`, prefixed `[ValheimTune]`:
 ```
 frame avg 16.7 max 17.0 ms (60 fps) | syncList avg 0.07 max 0.20 ms | send avg 0.10 ms
 | Z max 11418 | peer-sends 400 | zdos/s sent 430 recv 1000 | peers 2
-| marks 15750 full 0 dirtyRounds 399 deferred 8300 drained 12
+| marks 15750 full 0 dirtyRounds 399 deferred 8300 drained 12 | meshSkips 0
 recv by prefab (7848 in window): Fish1=1833 Fish2=1315 ...
 hot objects: Wood=69@(-327,-631) ...
 ```
@@ -123,6 +124,7 @@ hot objects: Wood=69@(-327,-631) ...
 | full / dirtyRounds | full scans vs dirty-set rounds | full ~0, one per `ReconcileSeconds` per player |
 | deferred | relays held back by the throttle | large is good |
 | drained | candidates from the last dirty round | |
+| meshSkips | render-mesh rebuilds skipped by `SkipRenderMesh` | climbs while players explore new ground, 0 elsewhere |
 | DISABLED | appended if the watchdog tripped | should never appear |
 | recv by prefab | which prefabs your players are pushing | tells you what to clean up |
 | hot objects | per-object counts with world x,z | find the log that never stops rolling |
