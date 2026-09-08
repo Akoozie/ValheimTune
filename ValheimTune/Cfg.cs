@@ -24,6 +24,8 @@ namespace ValheimTune
         public static ConfigEntry<bool> TopKSort;
         public static ConfigEntry<int> TopK;
         public static ConfigEntry<bool> ServerSkipRenderMesh;
+        public static ConfigEntry<bool> DeferAssetUnload;
+        public static ConfigEntry<int> AssetUnloadMaxDeferMinutes;
 
         public static void Bind(ConfigFile c)
         {
@@ -49,6 +51,8 @@ namespace ValheimTune
             DisableOnUnknownBuild = c.Bind("Compat", "DisableOnUnknownBuild", true, "On a version not in KnownGoodBuilds, keep only measurement, the send-rate postfix and the constant swap; every replacement patch runs vanilla.");
             TopKSort = c.Bind("Sync", "TopKSort", true, "B2: bounded-heap selection of the objects that fit the send window instead of a full sort of every candidate. Only matters during joins, zone changes and the reconcile scan.");
             ServerSkipRenderMesh = c.Bind("Server", "SkipRenderMesh", false, "B4a: skip Heightmap.RebuildRenderMesh on a dedicated server. The render mesh is rebuilt for every ghost zone a player explores and every terrain edit that loads with one, and never drawn on a -nographics process. Collision mesh untouched. Watch meshSkips on the stats line.");
+            DeferAssetUnload = c.Bind("Server", "DeferAssetUnload", false, "G1: hold the hourly Resources.UnloadUnusedAssets() until no players are connected. Vanilla runs it every hour regardless (Game.cs:239); measured 443-607 ms of main-thread stall on a 698k-ZDO world, landing with players online. Deferred, not skipped: it still runs the moment the server empties, or after AssetUnloadMaxDeferMinutes whichever comes first.");
+            AssetUnloadMaxDeferMinutes = c.Bind("Server", "AssetUnloadMaxDeferMinutes", 240, new ConfigDescription("Backstop for DeferAssetUnload: run the collection even with players online once it has been held this long. Stops a server that never empties from never collecting.", new AcceptableValueRange<int>(10, 1440)));
             TopK     = c.Bind("Sync", "TopK", 0, new ConfigDescription("How many candidates to order per round. 0 = SendWindowBytes / 64 (512 at 32 KB), never below 64.", new AcceptableValueRange<int>(0, 8192)));
         }
     }

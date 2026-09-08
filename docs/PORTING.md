@@ -69,8 +69,8 @@ years (`ZDO.GetPrefab/GetPosition/GetSector`, `ZNetScene.GetPrefab`,
 
 - One change per deploy; read the stats line for two minutes before the next.
 - Every knob defaults to vanilla except the ones proven live (`TargetFrameRate`,
-  `DirtySets`, `AllPeersPerRound`, `SlicedSave`, `TopKSort`); a bad patch is
-  one config line and a restart away from off. `ConfigReloadSeconds` makes runtime knobs live
+  `DirtySets`, `AllPeersPerRound`, `SlicedSave`, `TopKSort`); a bad patch is one config line and a
+  restart away from off. `ConfigReloadSeconds` makes runtime knobs live
   without a restart.
 - Keep `tools/server-managed/` and `src_server/` from the build the plugin
   was last verified against, and tag the repo (`git tag v0.5.0-b21981590`)

@@ -47,7 +47,7 @@ comes from is in [How it works](#how-it-works).
 4. Check the log for:
 
 ```
-[ValheimTune] 0.5.0 loaded on game 0.221.12 (net 36), 14 methods patched, replacements on
+[ValheimTune] 0.6.0 loaded on game 0.221.12 (net 36), 15 methods patched, replacements on
 [ValheimTune] SendZDOs window 10240/2048, 3 constants replaced (expected 3)
 ```
 
@@ -174,6 +174,8 @@ During a save you will also see:
 | `[Measure] LogIntervalSeconds` | 10 | runtime | Stats line cadence. 0 disables. |
 | `[Measure] ConfigReloadSeconds` | 5 | runtime | How often the cfg is re-read. |
 | `[Measure] HotObjectsIgnore` | Player,Fish1,Fish2,Fish3 | runtime | Prefabs left out of the hot-objects line. |
+| `[Server] DeferAssetUnload` | false | runtime | Hold vanilla's hourly `UnloadUnusedAssets` (443-607 ms of main-thread stall, measured) until no players are connected. Deferred, not skipped. |
+| `[Server] AssetUnloadMaxDeferMinutes` | 240 | runtime | Backstop: collect anyway once a deferral has been held this long, so a server that never empties still collects. |
 | `[Server] SkipRenderMesh` | false | runtime | Skip the heightmap render-mesh rebuild on a dedicated server; it is built for every zone a player explores and never drawn. Collision mesh untouched. |
 | `[Server] TargetFrameRate` | 0 | runtime | Override the server's hard-coded 30 fps. 0 = leave it. Sync round period is `0.05 s + players / fps`. |
 | `[Sync] SendWindowBytes` | 10240 | patch-time | Bytes in flight per player before the server stops queueing. Vanilla 10240. |
@@ -218,9 +220,9 @@ Each row is one measured problem and the patch that answers it.
 </details>
 
 <details>
-<summary><b>The 14 patched methods</b></summary>
+<summary><b>The 15 patched methods</b></summary>
 
-Harmony patches on 14 methods of the dedicated-server assembly, all in
+Harmony patches on 15 methods of the dedicated-server assembly, all in
 `Patches/`:
 
 | Method | Patch | Purpose |
@@ -234,6 +236,7 @@ Harmony patches on 14 methods of the dedicated-server assembly, all in
 | `ZSteamSocket.RegisterGlobalCallbacks` | postfix | Steam send rate |
 | `ZDO.Deserialize` | postfix | Per-prefab tally |
 | `Heightmap.RebuildRenderMesh` | prefix | Skip the render mesh on a headless server |
+| `Game.CollectResources` | prefix | Defer the hourly asset unload until the server is empty |
 | `ZNet.SaveWorld`, `ZDOMan.PrepareSave`, `ZDOMan.SaveAsync`, `ZDOExtraData.PrepareSave` | prefix | Sliced save |
 
 </details>

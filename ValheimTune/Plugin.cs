@@ -10,7 +10,7 @@ namespace ValheimTune
     public class Plugin : BaseUnityPlugin
     {
         public const string Guid = "akoozie.valheimtune";
-        public const string Version = "0.5.0";
+        public const string Version = "0.6.0";
         private const float WatchdogWindowSeconds = 10f;
         public static ManualLogSource Log;
         public static Plugin Instance;
@@ -40,6 +40,7 @@ namespace ValheimTune
         {
             ReloadConfig();
             RunFloatingDropsIfRequested();
+            Patches.AssetUnloadPatch.RunIfDue();
             MeasurePatches.FrameMs.Add(UnityEngine.Time.unscaledDeltaTime * 1000f);
             int fps = Cfg.TargetFrameRate.Value;
             if (fps > 0 && UnityEngine.Application.targetFrameRate != fps)

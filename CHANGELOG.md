@@ -2,6 +2,10 @@
 
 All against dedicated-server build 21981590 (game 0.221.12, network version 36).
 
+## 0.6.0 — 2026-09-07
+- G1 deferred asset unload (`[Server] DeferAssetUnload`, default off): vanilla runs `Resources.UnloadUnusedAssets()` every hour (`Game.cs:239` `InvokeRepeating`, the 3599 s check at `Game.cs:299`). Measured on GalinBalin at **443-607 ms of main-thread stall**, and the cost is independent of what it frees - Unity's `MarkObjects` walks all ~207,000 loaded objects to release one asset. Caught live at 21:04:26 with two players online (`frame max 512 ms`) and at 22:40:23 idle (`frame max 457 ms`, matching Unity's own 455.78 ms line). Both vanilla entry points route through `Game.CollectResources`, so one prefix covers them. The collection is **deferred, not skipped**: it runs the moment the last player disconnects, or after `AssetUnloadMaxDeferMinutes` (default 240) if the server never empties. Found by reading SmoothServer's module list; the deferral policy is ours.
+- 33 unit tests.
+
 ## 0.5.0 — 2026-09-07
 - B4a skip render mesh (`[Server] SkipRenderMesh`, default off): prefix on `Heightmap.RebuildRenderMesh` that returns false on a dedicated server. The server regenerates a heightmap for every ghost zone a player explores (`ZoneSystem.SpawnZone` -> the zone prefab's `Heightmap.OnEnable`) and for every terrain edit that loads with one (`TerrainComp.Poke`); the render half is `(m_width+1)^2` vertices, colours, UVs and indices plus `RecalculateNormals`/`Tangents`/`Bounds` on a `-nographics` process. The collision mesh, paint mask and material instance are untouched, and every other read of `m_renderMesh` is null-guarded. New `meshSkips` counter on the stats line. Off until a live exploration run shows the counter climbing with nothing visibly wrong.
 
