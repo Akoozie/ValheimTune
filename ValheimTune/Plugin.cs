@@ -10,7 +10,7 @@ namespace ValheimTune
     public class Plugin : BaseUnityPlugin
     {
         public const string Guid = "akoozie.valheimtune";
-        public const string Version = "0.6.0";
+        public const string Version = "0.7.0";
         private const float WatchdogWindowSeconds = 10f;
         public static ManualLogSource Log;
         public static Plugin Instance;
@@ -26,13 +26,13 @@ namespace ValheimTune
             Cfg.Bind(Config);
             if (Cfg.MinHeadroomBytes.Value >= Cfg.SendWindowBytes.Value)
                 Log.LogError("[ValheimTune] MinHeadroomBytes >= SendWindowBytes: no ZDO will ever be sent. Fix the config.");
-            Compat.GameVersion = global::Version.CurrentVersion.ToString();      // "0.221.12"; GetVersionString may carry a platform prefix
+            Compat.GameVersion = global::Version.CurrentVersion.ToString();      // "1.0.7"; GetVersionString may carry a platform prefix
             Compat.ReplacementsAllowed = !Cfg.DisableOnUnknownBuild.Value || Compat.IsKnown(Compat.GameVersion, Cfg.KnownGoodBuilds.Value);
             if (!Compat.ReplacementsAllowed)
                 Log.LogWarning($"[ValheimTune] game {Compat.GameVersion} not in KnownGoodBuilds ({Cfg.KnownGoodBuilds.Value}): replacement patches inactive, running vanilla + measurement");
             _harmony = new Harmony(Guid);
             _harmony.PatchAll(typeof(Plugin).Assembly);
-            uint networkVersion = global::Version.m_networkVersion;
+            uint networkVersion = global::Version.c_networkVersion;
             Log.LogInfo($"[ValheimTune] {Version} loaded on game {Compat.GameVersion} (net {networkVersion}), {_harmony.GetPatchedMethods().Count()} methods patched, replacements {(Compat.ReplacementsAllowed ? "on" : "OFF")}");
         }
 

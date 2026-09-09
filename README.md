@@ -1,5 +1,11 @@
 # ValheimTune
 
+> ### ✅ Valheim 1.0 ready
+> **0.7.0 runs on game 1.0.7 (network version 39)** and is live on the
+> reference server. Ported and verified on release day, 2026-09-09.
+> Running game 0.221.12? Use [0.6.0](../../releases/tag/v0.6.0) instead — the
+> version gate will refuse to apply 0.7.0's patches to an older build.
+
 Makes a Valheim dedicated server with a big base and a handful of players feel
 like a small one.
 
@@ -7,10 +13,11 @@ like a small one.
 the wire format is untouched, and vanilla clients connect exactly as before.
 
 ```
-game     0.221.12 (network version 36), dedicated server only
+game     1.0.7 (network version 39), dedicated server only
 needs    BepInEx 5.4.x
-status   live on the reference server since 2026-09-07:
-         690,000 objects, a 12,000-instance base, 2-6 players
+status   live on the reference server: 0.7.0 on game 1.0.7 since
+         2026-09-09, 0.6.0 on 0.221.12 before that. 698,000 objects,
+         a 12,000-instance base, 2-6 players
 ```
 
 ## Why
@@ -33,7 +40,7 @@ comes from is in [How it works](#how-it-works).
 
 - Valheim **dedicated server** (Steam app 896660). Not the in-client host.
 - BepInEx 5.4.x for Valheim ([BepInExPack_Valheim](https://thunderstore.io/c/valheim/p/denikson/BepInExPack_Valheim/)).
-- Game version listed in `[Compat] KnownGoodBuilds` (currently `0.221.12`).
+- Game version listed in `[Compat] KnownGoodBuilds` (currently `1.0.7`).
   On any other version the plugin runs in vanilla + measurement mode and says
   so in the log.
 
@@ -47,7 +54,7 @@ comes from is in [How it works](#how-it-works).
 4. Check the log for:
 
 ```
-[ValheimTune] 0.6.0 loaded on game 0.221.12 (net 36), 15 methods patched, replacements on
+[ValheimTune] 0.7.0 loaded on game 1.0.7 (net 39), 11 methods patched, replacements on
 [ValheimTune] SendZDOs window 10240/2048, 3 constants replaced (expected 3)
 ```
 
@@ -70,12 +77,12 @@ RelayMinIntervalMs = 200
 SendRateMaxBytesPerSec = 1048576
 ```
 
-`DirtySets`, `SlicedSave` and `TopKSort` are already on by default.
+`DirtySets` and `TopKSort` are already on by default.
 
 ### If the log says `replacements OFF`
 
 ```
-[ValheimTune] game 0.222.x not in KnownGoodBuilds (0.221.12): replacement
+[ValheimTune] game 1.0.8 not in KnownGoodBuilds (1.0.7): replacement
 patches inactive, running vanilla + measurement
 ```
 
@@ -96,7 +103,7 @@ you keep the diagnostics.
 
 ```ini
 [Compat]
-KnownGoodBuilds = 0.221.12, 0.222.3
+KnownGoodBuilds = 1.0.7, 1.0.8
 ```
 
 Restart. Harmony will refuse to patch any method whose signature changed and log
@@ -105,16 +112,9 @@ three constants it expects — so a *shape* change fails loudly rather than
 silently. What it cannot catch is a method whose shape is unchanged but whose
 *semantics* moved.
 
-**Back up your world first, and turn the save patch off before you do this:**
-
-```ini
-[Save]
-SlicedSave = false
-```
-
-`SlicedSave` replaces the world-save path. Every other patch affects
-performance; that one affects your world file, and it is the only one where
-being wrong costs you something you cannot restart your way out of.
+**Back up your world first.** Every patch here affects performance only —
+none of them writes your world file — but a game update can move ground under
+any of them, and a backup costs nothing.
 
 **3. Build it yourself against the new server assemblies.** See
 [Building from source](#building-from-source). If it works, please open an issue
@@ -157,12 +157,6 @@ hot objects: Wood=69@(-327,-631) ...
 
 </details>
 
-During a save you will also see:
-
-```
-[ValheimTune] sliced snapshot: 687131 ZDOs (0 skipped as destroyed mid-save), 30320 KB, 352 frames, 5956 ms total
-```
-
 <details>
 <summary><b>Full config reference</b> — every knob, default, and when it takes effect</summary>
 
@@ -190,11 +184,9 @@ During a save you will also see:
 | `[Steam] SendRateMaxBytesPerSec` | 153600 | patch-time | Steam per-connection send cap. Vanilla 150 KB/s. Do not exceed your upload divided by player count. |
 | `[Steam] SendRateMinBytesPerSec` | 153600 | patch-time | Leave at vanilla so Steam's estimator can back off on a lossy link. |
 | `[Receive] MaxPacketsPerPeerPerFrame` | 0 | runtime | Stop draining one player's socket after this many packets in a frame. 0 = vanilla. Try 64 if one player's burst ever stalls the rest. |
-| `[Save] SlicedSave` | **true** | runtime | Serialise the world on the main thread in slices; the writer thread never reads live game memory. |
-| `[Save] SaveSliceMs` | 6 | runtime | Main-thread milliseconds per frame spent serialising during a save. |
 | `[Cleanup] FloatingDropsRun` | false | one-shot | Set true to scan for item drops and felled logs floating in water. Resets itself. Dry run unless the next key is true. ~50 ms main-thread stall on a 698k-ZDO world. |
 | `[Cleanup] FloatingDropsDelete` | false | runtime | With `Run`: delete what the scan finds. Hourly backups first. |
-| `[Compat] KnownGoodBuilds` | 0.221.12 | patch-time | Game versions this plugin build was verified against. Comma-separated. |
+| `[Compat] KnownGoodBuilds` | 1.0.7 | patch-time | Game versions this plugin build was verified against. Comma-separated. |
 | `[Compat] DisableOnUnknownBuild` | true | patch-time | On an unlisted version, run only measurement, the send-rate cap and the constant swap. |
 
 </details>
@@ -220,9 +212,9 @@ Each row is one measured problem and the patch that answers it.
 </details>
 
 <details>
-<summary><b>The 15 patched methods</b></summary>
+<summary><b>The 11 patched methods</b></summary>
 
-Harmony patches on 15 methods of the dedicated-server assembly, all in
+Harmony patches on 11 methods of the dedicated-server assembly, all in
 `Patches/`:
 
 | Method | Patch | Purpose |
@@ -237,7 +229,11 @@ Harmony patches on 15 methods of the dedicated-server assembly, all in
 | `ZDO.Deserialize` | postfix | Per-prefab tally |
 | `Heightmap.RebuildRenderMesh` | prefix | Skip the render mesh on a headless server |
 | `Game.CollectResources` | prefix | Defer the hourly asset unload until the server is empty |
-| `ZNet.SaveWorld`, `ZDOMan.PrepareSave`, `ZDOMan.SaveAsync`, `ZDOExtraData.PrepareSave` | prefix | Sliced save |
+
+The save path is no longer patched. Valheim 1.0 writes one file per chunk and
+clones only dirty chunks, which supersedes the sliced save this plugin used to
+apply on 0.221.12; measured idle on a 698k-object world, an incremental
+autosave writes in 3 ms against 2,713 ms for a full one.
 
 </details>
 
@@ -252,10 +248,6 @@ without the game.
 
 ### Deliberate limits
 
-- The sliced save is consistent per object, not across objects within one
-  save; two objects can be up to a few seconds apart. Vanilla's clone was
-  atomic across objects but tore individual ones. Objects destroyed mid-save
-  are skipped and the count is patched.
 - The relay throttle can delay a *repeated* update of a fish or a rolling log
   by up to 200 ms. First updates ship on the next round.
 - Nothing here changes what a client is asked to render or simulate. Render
