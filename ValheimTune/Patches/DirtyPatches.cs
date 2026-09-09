@@ -13,6 +13,31 @@ namespace ValheimTune.Patches
         public static long MarksData;
         public static long MarksOwner;
         public static long Marks => MarksData + MarksOwner;
+
+        // Vanilla's area test moved from ZNetScene.InActiveArea(sector, zone, radius) to the ring
+        // loops in ZDOMan.FindSectorObjects. Those visit a zone only when it is inside the
+        // Chebyshev ring *and* passes ZonesWithinRadius, except in classic mode where the ring
+        // alone decides. These two mirror that exactly, for one candidate zone instead of a sweep.
+        public static int ZoneChebyshev(int ax, int ay, int bx, int by)
+        {
+            int dx = ax - bx; if (dx < 0) dx = -dx;
+            int dy = ay - by; if (dy < 0) dy = -dy;
+            return dx > dy ? dx : dy;
+        }
+
+        internal static bool InNear(Vector2s centre, Vector2s candidate, SimulationDistance sd)
+        {
+            if (ZoneChebyshev(centre.x, centre.y, candidate.x, candidate.y) > sd.NearSimulationDistance) return false;
+            return sd.IsClassic
+                || ZoneSystem.instance.ZonesWithinRadius(centre, candidate, sd.NearSimulationDistance);
+        }
+
+        internal static bool InDistant(Vector2s centre, Vector2s candidate, SimulationDistance sd)
+        {
+            if (ZoneChebyshev(centre.x, centre.y, candidate.x, candidate.y) > sd.TotalSimulationDistance) return false;
+            return sd.IsClassic
+                || ZoneSystem.instance.ZonesWithinRadius(centre, candidate, sd.TotalSimulationDistance, ghostZone: true);
+        }
         public static int FullScans;
         public static int DirtyRounds;
         public static int Deferred;
@@ -101,7 +126,7 @@ namespace ValheimTune.Patches
             }
             bool active = Active;
             Vector3 refPos = peer.m_peer.GetRefPos();
-            Vector2i zone = ZoneSystem.GetZone(refPos);
+            Vector2s zone = ZoneSystem.GetZone(refPos);
             var st = StateFor(peer);
             // Called every round regardless of Active so a peer's state always knows whether the
             // previous round was active; that is what forces a full scan on reactivation below.
@@ -116,8 +141,9 @@ namespace ValheimTune.Patches
             }
 
             DirtyRounds++;
-            int near = ZoneSystem.instance.m_activeArea;
-            int far = near + ZoneSystem.instance.m_activeDistantArea;
+            // 1.0 removed ZoneSystem.m_activeArea/m_activeDistantArea; the radius is now a
+            // per-peer SimulationDistance negotiated in ZNet.RPC_RequestValidSimulationDistance.
+            SimulationDistance sd = peer.m_peer.m_simulationDistance;
             s_relayMinMs = Cfg.RelayMinIntervalMs.Value;
             s_ids.Clear();
             st.Drain(s_ids,
@@ -125,8 +151,8 @@ namespace ValheimTune.Patches
                 inArea: id =>
                 {
                     ZDO z = Z(id);
-                    Vector2i s = z.GetSector();
-                    return ZNetScene.InActiveArea(s, zone, near) || (z.Distant && ZNetScene.InActiveArea(s, zone, far));
+                    Vector2s s = z.GetSector();
+                    return InNear(zone, s, sd) || (z.Distant && InDistant(zone, s, sd));
                 },
                 shouldSend: id => peer.ShouldSend(Z(id)),
                 deferSend: id => RelayThrottled(peer, Z(id)));
@@ -140,13 +166,13 @@ namespace ValheimTune.Patches
             for (int i = 0; i < s_ids.Count; i++)
             {
                 ZDO z = __instance.GetZDO(s_ids[i]);
-                if (ZNetScene.InActiveArea(z.GetSector(), zone, near)) { toSync.Add(z); nearCount++; }
+                if (InNear(zone, z.GetSector(), sd)) { toSync.Add(z); nearCount++; }
             }
             if (nearCount < 10)
                 for (int i = 0; i < s_ids.Count; i++)
                 {
                     ZDO z = __instance.GetZDO(s_ids[i]);
-                    if (!ZNetScene.InActiveArea(z.GetSector(), zone, near)) toSync.Add(z);
+                    if (!InNear(zone, z.GetSector(), sd)) toSync.Add(z);
                 }
 
             __instance.ServerSortSendZDOS(toSync, refPos, peer);

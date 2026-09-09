@@ -70,12 +70,12 @@ RelayMinIntervalMs = 200
 SendRateMaxBytesPerSec = 1048576
 ```
 
-`DirtySets`, `SlicedSave` and `TopKSort` are already on by default.
+`DirtySets` and `TopKSort` are already on by default.
 
 ### If the log says `replacements OFF`
 
 ```
-[ValheimTune] game 0.222.x not in KnownGoodBuilds (0.221.12): replacement
+[ValheimTune] game 1.0.8 not in KnownGoodBuilds (1.0.7): replacement
 patches inactive, running vanilla + measurement
 ```
 
@@ -105,16 +105,9 @@ three constants it expects — so a *shape* change fails loudly rather than
 silently. What it cannot catch is a method whose shape is unchanged but whose
 *semantics* moved.
 
-**Back up your world first, and turn the save patch off before you do this:**
-
-```ini
-[Save]
-SlicedSave = false
-```
-
-`SlicedSave` replaces the world-save path. Every other patch affects
-performance; that one affects your world file, and it is the only one where
-being wrong costs you something you cannot restart your way out of.
+**Back up your world first.** Every patch here affects performance only —
+none of them writes your world file — but a game update can move ground under
+any of them, and a backup costs nothing.
 
 **3. Build it yourself against the new server assemblies.** See
 [Building from source](#building-from-source). If it works, please open an issue
@@ -157,12 +150,6 @@ hot objects: Wood=69@(-327,-631) ...
 
 </details>
 
-During a save you will also see:
-
-```
-[ValheimTune] sliced snapshot: 687131 ZDOs (0 skipped as destroyed mid-save), 30320 KB, 352 frames, 5956 ms total
-```
-
 <details>
 <summary><b>Full config reference</b> — every knob, default, and when it takes effect</summary>
 
@@ -190,11 +177,9 @@ During a save you will also see:
 | `[Steam] SendRateMaxBytesPerSec` | 153600 | patch-time | Steam per-connection send cap. Vanilla 150 KB/s. Do not exceed your upload divided by player count. |
 | `[Steam] SendRateMinBytesPerSec` | 153600 | patch-time | Leave at vanilla so Steam's estimator can back off on a lossy link. |
 | `[Receive] MaxPacketsPerPeerPerFrame` | 0 | runtime | Stop draining one player's socket after this many packets in a frame. 0 = vanilla. Try 64 if one player's burst ever stalls the rest. |
-| `[Save] SlicedSave` | **true** | runtime | Serialise the world on the main thread in slices; the writer thread never reads live game memory. |
-| `[Save] SaveSliceMs` | 6 | runtime | Main-thread milliseconds per frame spent serialising during a save. |
 | `[Cleanup] FloatingDropsRun` | false | one-shot | Set true to scan for item drops and felled logs floating in water. Resets itself. Dry run unless the next key is true. ~50 ms main-thread stall on a 698k-ZDO world. |
 | `[Cleanup] FloatingDropsDelete` | false | runtime | With `Run`: delete what the scan finds. Hourly backups first. |
-| `[Compat] KnownGoodBuilds` | 0.221.12 | patch-time | Game versions this plugin build was verified against. Comma-separated. |
+| `[Compat] KnownGoodBuilds` | 1.0.7 | patch-time | Game versions this plugin build was verified against. Comma-separated. |
 | `[Compat] DisableOnUnknownBuild` | true | patch-time | On an unlisted version, run only measurement, the send-rate cap and the constant swap. |
 
 </details>
@@ -252,10 +237,6 @@ without the game.
 
 ### Deliberate limits
 
-- The sliced save is consistent per object, not across objects within one
-  save; two objects can be up to a few seconds apart. Vanilla's clone was
-  atomic across objects but tore individual ones. Objects destroyed mid-save
-  are skipped and the count is patched.
 - The relay throttle can delay a *repeated* update of a fish or a rolling log
   by up to 200 ms. First updates ship on the next round.
 - Nothing here changes what a client is asked to render or simulate. Render

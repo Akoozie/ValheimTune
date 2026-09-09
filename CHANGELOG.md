@@ -1,6 +1,39 @@
 # Changelog
 
-All against dedicated-server build 21981590 (game 0.221.12, network version 36).
+0.7.0 and later target dedicated-server build 25185644 (game 1.0.7, network
+version 39). 0.6.0 and earlier target build 21981590 (game 0.221.12, network
+version 36).
+
+## 0.7.0 — 2026-09-09
+
+Port to Valheim 1.0.7. Not yet run on a live server; the plugin is disabled on
+the reference host (`ValheimTune.dll.disabled`) pending a session with a player
+online. See `docs/PORTING-1.0.md` for the full survey.
+
+- **S1 sliced save removed.** 1.0 rewrote the save path: `ZDOMan.SaveAsync` is
+  gone, replaced by `SaveChunks`/`SaveChunk`/`SaveCleanup` writing one file per
+  chunk, and `GetSaveClonePerChunk` clones only *dirty* chunks. That is a
+  strictly better answer to the freeze S1 was working around, so the feature is
+  deleted rather than ported: `SavePatches.cs`, `SaveSlicer.cs`,
+  `SaveSlicerTests.cs`, and the `[Save] SlicedSave` / `[Save] SaveSliceMs`
+  knobs. Vanilla 1.0 autosave cost on a 698k-ZDO world is still unmeasured.
+- **B1 dirty sets ported to per-peer simulation distance.** 1.0 removed
+  `ZoneSystem.m_activeArea` / `m_activeDistantArea`; the sync radius is now a
+  per-peer `SimulationDistance` negotiated in
+  `ZNet.RPC_RequestValidSimulationDistance` and clamped server-side to
+  `min(client request, server cap)`. `DirtyPatches` now mirrors the ring
+  predicate in `ZDOMan.FindSectorObjects` (Chebyshev ring **and**
+  `ZonesWithinRadius`, except in classic mode) instead of calling the removed
+  `ZNetScene.InActiveArea(sector, zone, radius)`. Zone indices are `Vector2s`,
+  not `Vector2i`. New `ZoneRingTests` cover the ring maths.
+- `Version.m_networkVersion` renamed to `Version.c_networkVersion`.
+- `[Compat] KnownGoodBuilds` default 0.221.12 -> 1.0.7.
+- Unchanged and rebuilt as-is: B2 top-K, R2 relay throttle, the `SendZDOs`
+  constant swap, the receive cap, the Steam send rate, `TargetFrameRate`,
+  G1 deferred asset unload, B4a skip render mesh, the watchdog and the stats
+  line. `ZRpc.cs` and `ZSteamSocket.cs` are byte-identical between 0.221.12 and
+  1.0.7; `ServerSortSendZDOS` and `SendZDOToPeers2` have identical bodies.
+- 38 unit tests.
 
 ## 0.6.0 — 2026-09-07
 - G1 deferred asset unload (`[Server] DeferAssetUnload`, default off): vanilla runs `Resources.UnloadUnusedAssets()` every hour (`Game.cs:239` `InvokeRepeating`, the 3599 s check at `Game.cs:299`). Measured on GalinBalin at **443-607 ms of main-thread stall**, and the cost is independent of what it frees - Unity's `MarkObjects` walks all ~207,000 loaded objects to release one asset. Caught live at 21:04:26 with two players online (`frame max 512 ms`) and at 22:40:23 idle (`frame max 457 ms`, matching Unity's own 455.78 ms line). Both vanilla entry points route through `Game.CollectResources`, so one prefix covers them. The collection is **deferred, not skipped**: it runs the moment the last player disconnects, or after `AssetUnloadMaxDeferMinutes` (default 240) if the server never empties. Found by reading SmoothServer's module list; the deferral policy is ours.

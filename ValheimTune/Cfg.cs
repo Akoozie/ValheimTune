@@ -17,8 +17,6 @@ namespace ValheimTune
         public static ConfigEntry<bool> DirtySets;
         public static ConfigEntry<float> ReconcileSeconds;
         public static ConfigEntry<int> RelayMinIntervalMs;
-        public static ConfigEntry<bool> SlicedSave;
-        public static ConfigEntry<int> SaveSliceMs;
         public static ConfigEntry<string> KnownGoodBuilds;
         public static ConfigEntry<bool> DisableOnUnknownBuild;
         public static ConfigEntry<bool> TopKSort;
@@ -45,9 +43,7 @@ namespace ValheimTune
             DirtySets        = c.Bind("Sync", "DirtySets", true, "B1: only consider changed ZDOs each round instead of rescanning the whole active area. Full scan on join, zone change, and every ReconcileSeconds.");
             ReconcileSeconds = c.Bind("Sync", "ReconcileSeconds", 30f, "Safety-net full scan interval per peer when DirtySets is on.");
             RelayMinIntervalMs = c.Bind("Sync", "RelayMinIntervalMs", 0, "Do not re-send a non-prioritized object (fish, items, pieces) to the same peer more often than this, in ms. 0 = vanilla. 200 = 5 Hz; fish and drifting items are the bulk of idle traffic at a big base.");
-            SlicedSave  = c.Bind("Save", "SlicedSave", true, "S1: serialize the world on the main thread in slices instead of cloning it and letting the writer thread read live arrays.");
-            SaveSliceMs = c.Bind("Save", "SaveSliceMs", 6, new ConfigDescription("Main-thread milliseconds per frame spent serializing during a save.", new AcceptableValueRange<int>(1, 50)));
-            KnownGoodBuilds = c.Bind("Compat", "KnownGoodBuilds", "0.221.12", "Game versions (Version.CurrentVersion) this build of the plugin was verified against. Comma-separated.");
+            KnownGoodBuilds = c.Bind("Compat", "KnownGoodBuilds", "1.0.7", "Game versions (Version.CurrentVersion) this build of the plugin was verified against. Comma-separated.");
             DisableOnUnknownBuild = c.Bind("Compat", "DisableOnUnknownBuild", true, "On a version not in KnownGoodBuilds, keep only measurement, the send-rate postfix and the constant swap; every replacement patch runs vanilla.");
             TopKSort = c.Bind("Sync", "TopKSort", true, "B2: bounded-heap selection of the objects that fit the send window instead of a full sort of every candidate. Only matters during joins, zone changes and the reconcile scan.");
             ServerSkipRenderMesh = c.Bind("Server", "SkipRenderMesh", false, "B4a: skip Heightmap.RebuildRenderMesh on a dedicated server. The render mesh is rebuilt for every ghost zone a player explores and every terrain edit that loads with one, and never drawn on a -nographics process. Collision mesh untouched. Watch meshSkips on the stats line.");
