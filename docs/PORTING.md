@@ -242,7 +242,7 @@ World save (4/5) FWL writing                           3 ms
 idle after                    CPU 24.38%   RSS 2.025 GiB
 ```
 
-Main-thread cost ~398 ms, against the ~600 ms `STATUS.md` estimated for
+Main-thread cost ~398 ms, against the ~600 ms previously estimated for
 0.221.12 on this world. **All 50 chunks were dirty** — this was the first save
 after a restart, so it is the full-save worst case and shows none of the
 incremental benefit. A second autosave with few dirty chunks is what actually
