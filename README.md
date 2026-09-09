@@ -7,9 +7,10 @@ like a small one.
 the wire format is untouched, and vanilla clients connect exactly as before.
 
 ```
-game     0.221.12 (network version 36), dedicated server only
+game     1.0.7 (network version 39), dedicated server only
 needs    BepInEx 5.4.x
-status   live on the reference server since 2026-09-07:
+status   0.7.0 is a port to 1.0 and has NOT been run on a live server yet.
+         0.6.0 ran on the reference server from 2026-09-07 on 0.221.12:
          690,000 objects, a 12,000-instance base, 2-6 players
 ```
 
@@ -33,7 +34,7 @@ comes from is in [How it works](#how-it-works).
 
 - Valheim **dedicated server** (Steam app 896660). Not the in-client host.
 - BepInEx 5.4.x for Valheim ([BepInExPack_Valheim](https://thunderstore.io/c/valheim/p/denikson/BepInExPack_Valheim/)).
-- Game version listed in `[Compat] KnownGoodBuilds` (currently `0.221.12`).
+- Game version listed in `[Compat] KnownGoodBuilds` (currently `1.0.7`).
   On any other version the plugin runs in vanilla + measurement mode and says
   so in the log.
 
@@ -47,7 +48,7 @@ comes from is in [How it works](#how-it-works).
 4. Check the log for:
 
 ```
-[ValheimTune] 0.6.0 loaded on game 0.221.12 (net 36), 15 methods patched, replacements on
+[ValheimTune] 0.7.0 loaded on game 1.0.7 (net 39), 11 methods patched, replacements on
 [ValheimTune] SendZDOs window 10240/2048, 3 constants replaced (expected 3)
 ```
 
@@ -96,7 +97,7 @@ you keep the diagnostics.
 
 ```ini
 [Compat]
-KnownGoodBuilds = 0.221.12, 0.222.3
+KnownGoodBuilds = 1.0.7, 1.0.8
 ```
 
 Restart. Harmony will refuse to patch any method whose signature changed and log
@@ -205,9 +206,9 @@ Each row is one measured problem and the patch that answers it.
 </details>
 
 <details>
-<summary><b>The 15 patched methods</b></summary>
+<summary><b>The 11 patched methods</b></summary>
 
-Harmony patches on 15 methods of the dedicated-server assembly, all in
+Harmony patches on 11 methods of the dedicated-server assembly, all in
 `Patches/`:
 
 | Method | Patch | Purpose |
@@ -222,7 +223,11 @@ Harmony patches on 15 methods of the dedicated-server assembly, all in
 | `ZDO.Deserialize` | postfix | Per-prefab tally |
 | `Heightmap.RebuildRenderMesh` | prefix | Skip the render mesh on a headless server |
 | `Game.CollectResources` | prefix | Defer the hourly asset unload until the server is empty |
-| `ZNet.SaveWorld`, `ZDOMan.PrepareSave`, `ZDOMan.SaveAsync`, `ZDOExtraData.PrepareSave` | prefix | Sliced save |
+
+The save path is no longer patched. Valheim 1.0 writes one file per chunk and
+clones only dirty chunks, which supersedes the sliced save this plugin used to
+apply on 0.221.12; measured idle on a 698k-object world, an incremental
+autosave writes in 3 ms against 2,713 ms for a full one.
 
 </details>
 
