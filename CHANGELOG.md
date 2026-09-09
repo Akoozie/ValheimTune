@@ -10,8 +10,11 @@ Port to Valheim 1.0.7, deployed and verified live on 2026-09-09 with a player
 online: `11 methods patched, replacements on`, `3 constants replaced
 (expected 3)`, sync cost 0.09 ms/call against 4.1 ms vanilla, frame 16.7 avg /
 17.0 max, no errors. B4a's `meshSkips` fired for the first time (34), 1.0 zone
-generation finally giving it virgin terrain. G1 still needs an hour boundary.
-See `docs/PORTING-1.0.md` for the full survey and the live numbers.
+generation finally giving it virgin terrain. **G1 verified at 18:54** - the
+hour boundary landed with a player on and the unload was deferred, frames
+staying 16.9-24.6 ms with none of the 443-607 ms stall seen on 0.221.12.
+Every feature in the port is verified live. See `docs/PORTING-1.0.md` for the
+full survey and the live numbers.
 
 - **S1 sliced save removed.** 1.0 rewrote the save path: `ZDOMan.SaveAsync` is
   gone, replaced by `SaveChunks`/`SaveChunk`/`SaveCleanup` writing one file per
