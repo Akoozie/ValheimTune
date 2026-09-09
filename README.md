@@ -5,6 +5,8 @@
 > reference server. Ported and verified on release day, 2026-09-09.
 > Running game 0.221.12? Use [0.6.0](../../releases/tag/v0.6.0) instead — the
 > version gate will refuse to apply 0.7.0's patches to an older build.
+>
+> On Thunderstore: [`Akoozie-ValheimTune`](https://thunderstore.io/c/valheim/p/Akoozie/ValheimTune/)
 
 Makes a Valheim dedicated server with a big base and a handful of players feel
 like a small one.
@@ -45,6 +47,11 @@ comes from is in [How it works](#how-it-works).
   so in the log.
 
 ## Install
+
+On [Thunderstore](https://thunderstore.io/c/valheim/p/Akoozie/ValheimTune/) —
+`Akoozie-ValheimTune`. Note that mod managers install to a client profile; for
+a dedicated server you still need the DLL on the **server**, so the manual
+steps below are the normal route.
 
 1. Install BepInEx on the server. With the `lloesche/valheim-server` Docker
    image that is `BEPINEX=true` in `server.env`.
