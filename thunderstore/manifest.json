@@ -1,0 +1,9 @@
+{
+  "name": "ValheimTune",
+  "version_number": "0.7.0",
+  "website_url": "https://github.com/Akoozie/ValheimTune",
+  "description": "Server-side performance patches for Valheim dedicated servers. Object sync 4.1ms -> 0.09ms per call on a 700k-object world. Players install nothing, wire format untouched. Valheim 1.0 ready.",
+  "dependencies": [
+    "denikson-BepInExPack_Valheim-5.4.2350"
+  ]
+}

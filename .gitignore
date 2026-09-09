@@ -4,3 +4,5 @@ lib/*
 !lib/README.md
 *.user
 .vs/
+thunderstore/build/
+thunderstore/*.zip
