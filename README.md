@@ -1,5 +1,11 @@
 # ValheimTune
 
+> ### ✅ Valheim 1.0 ready
+> **0.7.0 runs on game 1.0.7 (network version 39)** and is live on the
+> reference server. Ported and verified on release day, 2026-09-09.
+> Running game 0.221.12? Use [0.6.0](../../releases/tag/v0.6.0) instead — the
+> version gate will refuse to apply 0.7.0's patches to an older build.
+
 Makes a Valheim dedicated server with a big base and a handful of players feel
 like a small one.
 
