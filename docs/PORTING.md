@@ -226,9 +226,9 @@ SaveSystem.Reload (World)                 32 ms
 idle          CPU 25.08%   RSS 1.894 GiB / 7.635 GiB
 ```
 
-The 1.07 GiB idle figure in `STATUS.md` is **Midgard** (44,597 ZDOs), not
-GalinBalin — the two are not comparable, and there is no 0.221.12 GalinBalin
-idle baseline to compare against.
+There is no 0.221.12 idle-memory baseline for this world to compare against;
+the earlier ~1 GiB figure on record was measured on a far smaller world and is
+not comparable.
 
 First vanilla 1.0 autosave, 2026-09-09 15:55:49, 0 players:
 
