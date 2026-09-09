@@ -203,12 +203,19 @@ Nothing else on the server path assigns the field, and there is no cmdline
 flag or config entry for it. Read literally, the server cap stays at
 `default(SimulationDistance)` = near 0, far 0.
 
-**This is a lead, not a finding.** It is a decompiled graphics-stubbed method,
-and a regression this severe would be loudly visible on launch day. But it
-makes a sharp prediction that costs one login to test: with a player online,
-the sync radius would be roughly one zone and distant objects would barely
-populate. Check `FindSectorObjects` behaviour with one peer before building
-anything on top of it.
+**RESOLVED 2026-09-09, and the reading was wrong.** Tested with a player
+online on the live 1.0.7 server: draw distance is normal and the player's base
+is visible from a long way off. The server cap is not stuck at zero, so
+`FindSectorObjects` is scanning a normal radius and nothing here blocks B1/B2.
+
+The decompile above is a graphics-stubbed server build; `GetDesiredSimulationDistance`
+reads as a trivial field return because the settings source it normally consults
+is compiled out, not because the field is never assigned. Treat single-method
+reads of the stubbed server build with suspicion - cross-check against `src/`
+(the client build) or against live behaviour before acting on one.
+
+Kept here because the test was cheap and the negative result is worth
+recording: it is the reason B1 and B2 were judged worth porting at all.
 
 ### (d) Minor
 
@@ -298,6 +305,68 @@ eight maps that are mostly unchanged, without handing the writer live data.
 Worth measuring with players online first - 188 ms every 30 minutes on an idle
 server may not be worth any risk, and the figure may scale with churn rather
 than world size.
+
+## Verified live, 2026-09-09
+
+0.7.0 deployed to the reference server at 17:53 on game 1.0.7, one player
+online, world GalinBalin (698,748 ZDOs).
+
+```
+[ValheimTune] 0.7.0 loaded on game 1.0.7 (net 39), 11 methods patched, replacements on
+[ValheimTune] SendZDOs window 32768/4096, 3 constants replaced (expected 3)
+[ValheimTune] targetFrameRate set to 60
+[ValheimTune] Steam send rate min 153600 max 1048576 B/s
+```
+
+Steady state with one player:
+
+```
+17:55:11   syncList avg 0.45  max 10.14 ms   marks  9590   dirtyRounds 193
+17:55:21   syncList avg 0.07  max  0.20 ms   marks 16764   dirtyRounds 199
+17:55:31   syncList avg 0.11  max  4.53 ms   marks 16530   dirtyRounds 199
+17:55:41   syncList avg 0.09  max  0.32 ms   marks 24110   dirtyRounds 199
+17:55:51   syncList avg 0.09  max  0.35 ms   marks 21386   dirtyRounds 200
+frame avg 16.7  max 17.0 ms (60 fps)   Z max 11,408   peer-sends ~200
+```
+
+| Sync cost per call | |
+|---|---|
+| vanilla 0.221.12 | 4.1 ms |
+| B1 on 0.221.12 | 0.07 ms |
+| **B1 on 1.0.7** | **0.09 ms** |
+
+The ported ring predicate lands within noise of the original. **It was also
+checked the way the counters cannot check it**: healthy numbers are equally
+consistent with an area test that silently drops objects, so the player walked
+the base and confirmed every piece, chest and station was present, then ranged
+out and back. Nothing missing. Do this on any future change to `DirtyPatches`
+- `drained 0` at steady state is correct behaviour and a silent failure look
+the same from the log.
+
+The join burst (17:55:01) is the expected one-off full scan: `syncList avg
+2.92 max 23.80 ms`, 7,115 drained, 3,005 sent.
+
+**B4a fired for the first time ever**: `meshSkips 34` in the 17:54:31 window.
+It read 0 across all 30 windows of the 0.221.12 exploration run because that
+world had no ungenerated zones left; 1.0 zone generation finally gives it
+virgin terrain. The patch is attached and working.
+
+Two 0.221.12-era findings still hold on 1.0: fish are ~59% of inbound ZDO
+traffic (`Fish1=2171 Fish2=1380 Fish3=1317` of 8,265 in a 10 s window), and
+dropped wood is the top churning object.
+
+No errors, no warnings, no watchdog trip.
+
+**Config trap worth remembering.** BepInEx reads the existing cfg file, not the
+new defaults, so the live `[Compat] KnownGoodBuilds` was still `0.221.12` and
+would have gated every replacement patch off - the deploy would have logged
+`replacements OFF` and measured vanilla while looking healthy. It has to be
+edited on the server as part of any version bump. The orphaned `[Save]`
+`SlicedSave` / `SaveSliceMs` keys are harmless; BepInEx ignores them.
+
+**Still open:** G1 needs an hour boundary with a player online. The
+`InvokeRepeating` arms at *server process* start, so after the 17:53 restart
+the tick lands at 18:53.
 
 ## Port status
 

@@ -9,9 +9,9 @@ the wire format is untouched, and vanilla clients connect exactly as before.
 ```
 game     1.0.7 (network version 39), dedicated server only
 needs    BepInEx 5.4.x
-status   0.7.0 is a port to 1.0 and has NOT been run on a live server yet.
-         0.6.0 ran on the reference server from 2026-09-07 on 0.221.12:
-         690,000 objects, a 12,000-instance base, 2-6 players
+status   live on the reference server: 0.7.0 on game 1.0.7 since
+         2026-09-09, 0.6.0 on 0.221.12 before that. 698,000 objects,
+         a 12,000-instance base, 2-6 players
 ```
 
 ## Why

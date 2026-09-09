@@ -6,9 +6,12 @@ version 36).
 
 ## 0.7.0 — 2026-09-09
 
-Port to Valheim 1.0.7. Not yet run on a live server; the plugin is disabled on
-the reference host (`ValheimTune.dll.disabled`) pending a session with a player
-online. See `docs/PORTING-1.0.md` for the full survey.
+Port to Valheim 1.0.7, deployed and verified live on 2026-09-09 with a player
+online: `11 methods patched, replacements on`, `3 constants replaced
+(expected 3)`, sync cost 0.09 ms/call against 4.1 ms vanilla, frame 16.7 avg /
+17.0 max, no errors. B4a's `meshSkips` fired for the first time (34), 1.0 zone
+generation finally giving it virgin terrain. G1 still needs an hour boundary.
+See `docs/PORTING-1.0.md` for the full survey and the live numbers.
 
 - **S1 sliced save removed.** 1.0 rewrote the save path: `ZDOMan.SaveAsync` is
   gone, replaced by `SaveChunks`/`SaveChunk`/`SaveCleanup` writing one file per
