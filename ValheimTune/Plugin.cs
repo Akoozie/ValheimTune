@@ -10,7 +10,7 @@ namespace ValheimTune
     public class Plugin : BaseUnityPlugin
     {
         public const string Guid = "akoozie.valheimtune";
-        public const string Version = "0.7.0";
+        public const string Version = "0.7.1";
         private const float WatchdogWindowSeconds = 10f;
         public static ManualLogSource Log;
         public static Plugin Instance;
@@ -27,7 +27,9 @@ namespace ValheimTune
             if (Cfg.MinHeadroomBytes.Value >= Cfg.SendWindowBytes.Value)
                 Log.LogError("[ValheimTune] MinHeadroomBytes >= SendWindowBytes: no ZDO will ever be sent. Fix the config.");
             Compat.GameVersion = global::Version.CurrentVersion.ToString();      // "1.0.7"; GetVersionString may carry a platform prefix
-            Compat.ReplacementsAllowed = !Cfg.DisableOnUnknownBuild.Value || Compat.IsKnown(Compat.GameVersion, Cfg.KnownGoodBuilds.Value);
+            Compat.ReplacementsAllowed = !Cfg.DisableOnUnknownBuild.Value || Compat.IsKnownOrShipped(Compat.GameVersion, Cfg.KnownGoodBuilds.Value);
+            if (Compat.ReplacementsAllowed && !Compat.IsKnown(Compat.GameVersion, Cfg.KnownGoodBuilds.Value))
+                Log.LogInfo($"[ValheimTune] game {Compat.GameVersion} is not in your KnownGoodBuilds ({Cfg.KnownGoodBuilds.Value}) but ships in this release ({Compat.DefaultKnownGoodBuilds}); using the shipped list. Your config is from an older version.");
             if (!Compat.ReplacementsAllowed)
                 Log.LogWarning($"[ValheimTune] game {Compat.GameVersion} not in KnownGoodBuilds ({Cfg.KnownGoodBuilds.Value}): replacement patches inactive, running vanilla + measurement");
             _harmony = new Harmony(Guid);

@@ -5,7 +5,7 @@
     <Nullable>disable</Nullable>
     <AssemblyName>ValheimTune</AssemblyName>
     <RootNamespace>ValheimTune</RootNamespace>
-    <Version>0.7.0</Version>
+    <Version>0.7.1</Version>
     <GameManaged Condition="'$(GameManaged)' == ''">$(MSBuildThisFileDirectory)../lib/server-managed</GameManaged>
   </PropertyGroup>
   <ItemGroup>

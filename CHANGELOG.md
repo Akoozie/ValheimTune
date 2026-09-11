@@ -1,8 +1,42 @@
 # Changelog
 
-0.7.0 and later target dedicated-server build 25185644 (game 1.0.7, network
-version 39). 0.6.0 and earlier target build 21981590 (game 0.221.12, network
+0.7.1 targets dedicated-server build 25253791 (game 1.0.12, network version
+40) and remains valid for 1.0.7. 0.7.0 targets build 25185644 (game 1.0.7,
+network version 39). 0.6.0 and earlier target build 21981590 (game 0.221.12, network
 version 36).
+
+## 0.7.1 - 2026-09-11
+
+Compatibility rebuild for Valheim 1.0.12 (build 25253791, network version 40).
+No behaviour change.
+
+**Not verified live.** 0.7.0 was booted on a real server with a player online;
+0.7.1 has not been. What it does rest on: a decompile diff of the 1.0.12
+dedicated-server assembly shows every method this plugin patches is
+byte-identical to 1.0.7, at identical line numbers - `CreateSyncList` (1261),
+`ServerSortSendZDOS` (1360), the `SendZDOs` window constants 10240/10240/2048
+(1060/1064/1065), and `ZDO.DataRevision` / `OwnerRevision` still auto-properties.
+`ZRpc.cs`, `ZSteamSocket.cs`, `ZDO.cs`, `Game.cs` and `Heightmap.cs` are
+unchanged outright. The only ZDOMan edits in 1.0.12 are in
+`ConvertInventories` / `ConvertContainers`, the world-migration path, which this
+plugin does not touch. It compiles against the 1.0.12 assemblies and passes
+40/40 unit tests. The gap that leaves: nobody has confirmed Harmony attaches at
+runtime on 1.0.12, or that the constant-swap transpiler still finds exactly 3
+constants. Read the load line on first boot and treat a
+`constants replaced (expected 3)` mismatch as a reason to set
+`DisableOnUnknownBuild = true` and report it.
+
+- **The shipped version list is now a floor, not a default.** BepInEx keeps an
+  existing config on upgrade, so before this change every 0.7.0 install would
+  have kept `KnownGoodBuilds = 1.0.7` and silently dropped every patch the
+  moment it reached 1.0.12 - an upgrade that quietly does nothing. The gate now
+  passes if the build is in the user's list *or* in
+  `Compat.DefaultKnownGoodBuilds` (`1.0.7, 1.0.12`), and logs once when the
+  shipped list is what allowed it. Configs can still add builds; narrowing the
+  list was never a documented way to disable anything - that is
+  `DisableOnUnknownBuild` and the per-feature knobs.
+- Builds against `tools/server-managed-1012/`; `src_server_1012/` added.
+- Five new tests (43 total, was 38).
 
 ## 0.7.0 — 2026-09-09
 
