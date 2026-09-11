@@ -379,3 +379,151 @@ the tick lands at 18:53.
 | build refs -> `tools/server-managed-107/` | 1.0.7 assemblies |
 
 Everything else rebuilds unchanged.
+
+---
+
+# What actually happened: 1.0.12, 2026-09-11
+
+The second time through this loop, and the first time the guards were tested by
+an update nobody was watching for.
+
+## It started as an outage, not a port
+
+Valheim 1.0.12 (build 25253791, network version 40) went to Steam's public
+branch at ~13:07 UTC. Clients auto-update; dedicated servers do not. The
+reference server stayed on 1.0.7 / network version 39 and started refusing
+everyone:
+
+```
+16:25:26  Network version check, their:40, mine:39
+16:25:26  Peer 7656119802xxxxxxx has incompatible version,
+          mine:1.0.7 (network version 39)  remote 1.0.12 (network version 40)
+16:30:33   Connections 0 ZDOS:148330 sent:0 recv:0
+```
+
+**Root cause was a config line left behind by the BepInEx experiment.**
+`UPDATE_CRON` had been blanked and `UPDATE_IF_IDLE` set false months earlier so
+a Steam patch could not land mid-measurement and trip the version gate. The
+experiment ended when the server went vanilla; the line was never restored.
+`server.env` even said so in a comment - `# Experiment: BepInEx mod loader
+(ValheimTune). Restore auto-update when done.`
+
+**The trap worth remembering:** the container's daily
+`10 5 * * * valheim-is-idle && supervisorctl restart valheim-server` looks like
+it would have caught this. It does not. It restarts the game process only. The
+Steam updater runs on *container bootstrap*, so nothing short of
+`docker restart` (or `docker compose up -d`) pulls a game update. A server with
+`UPDATE_CRON` empty can sit a full version behind indefinitely while appearing
+to restart daily.
+
+Fix was `docker restart -t 150 valheim` at 0 players: stop with a 150 s save
+grace, bootstrap updater pulls 25253791, world back at 16:35:39.
+`UPDATE_CRON=*/15 * * * *` and `UPDATE_IF_IDLE=true` were then restored and
+applied with `docker compose up -d` (an env change needs a recreate, not a
+restart).
+
+One false alarm worth knowing about: the updater logs
+`Successfully installed BepInEx mod` on every bootstrap even with
+`BEPINEX=false`. It stages the files and does not load them. Confirm with
+`mod: none`, `isModded: False`, and an empty `DOORSTOP_ENABLED` / `LD_PRELOAD`
+in the server process environment.
+
+## The port itself: nothing moved
+
+Getting the assemblies did not need SteamCMD - the host was already running the
+exact build:
+
+```
+ssh HOST 'docker exec valheim tar -cf - -C /opt/valheim/server/valheim_server_Data/Managed .' > managed.tar
+```
+
+33 MB, then ilspycmd into `src_server_1012/`. The diff against `src_server_107/`
+is three hunks, **all of them in world migration**:
+
+| File | Changed lines |
+|---|---|
+| `ZDOMan.cs` | 103, entirely in `ConvertInventories` / `ConvertContainers` (1.0.12 splits them and adds `GetConvertHash` for per-slot keys) |
+| `ZRpc.cs`, `ZSteamSocket.cs`, `ZDO.cs`, `Game.cs`, `Heightmap.cs`, `ZoneSystem.cs` | 0 |
+
+Every patched member is byte-identical, at identical line numbers:
+`CreateSyncList` 1261, `ServerSortSendZDOS` 1360, the `SendZDOs` window
+constants 10240/10240/2048 at 1060/1064/1065, and `ZDO.DataRevision` /
+`OwnerRevision` still auto-properties. The list in "What is version-sensitive"
+above scored 0 for 6.
+
+Total code change for the port: the build reference, the version string, and
+the gate list. **Time budget from the release-day loop said 30 minutes if
+nothing moved. That was accurate.**
+
+## The bug the port exposed: a default is not an upgrade
+
+Bumping `KnownGoodBuilds` from `"1.0.7"` to `"1.0.7, 1.0.12"` would have done
+nothing for anyone who already had the plugin. BepInEx's `Config.Bind` only
+writes a default when the key is *absent*; an existing
+`akoozie.valheimtune.cfg` keeps its own value forever. So every 0.7.0 install
+would have upgraded to 0.7.1, hit 1.0.12, failed the gate on its stale config,
+and silently run vanilla - an upgrade whose entire purpose is 1.0.12 support,
+quietly doing nothing, with the evidence only in a log line most operators
+never read.
+
+The fix is in `Compat`: the shipped list is a **floor**, not a default.
+
+```csharp
+public const string DefaultKnownGoodBuilds = "1.0.7, 1.0.12";
+
+public static bool IsKnownOrShipped(string version, string knownList)
+{
+    return IsKnown(version, knownList) || IsKnown(version, DefaultKnownGoodBuilds);
+}
+```
+
+A config can still *add* builds; it can no longer remove one the release was
+built for. That is safe because narrowing the list was never a documented way
+to disable anything - `DisableOnUnknownBuild` and the per-feature knobs are.
+`Plugin.Awake` logs once when the shipped list is what allowed the patches, so
+a stale config is visible rather than silent. Three tests cover it, including
+that a genuinely unknown build (`2.0.0`) is still refused.
+
+**Generalise this:** any config default that gates behaviour has the same
+problem. Shipping a new default only reaches new installs.
+
+## Shipped without live verification - deliberately
+
+The release-day loop's step 5 is `./mod/deploy.sh` and reading the load line on
+a real server. That did not happen, and 0.7.1 is the first release to skip it.
+
+The reference server is deliberately vanilla (`BEPINEX=false`) to keep its
+world achievement-eligible, so the only honest options were a disposable second
+container or shipping on the diff alone. Akash chose to ship. What that leaves
+unproven, precisely:
+
+- that Harmony attaches to all 11 methods at runtime on 1.0.12, and
+- that the constant-swap transpiler still finds exactly 3 constants.
+
+A source diff cannot prove either; both are IL-level. Note the second one is
+the failure mode the version gate does **not** catch on its own - hence the
+`(expected 3)` check in the load line and the instruction in the release notes
+to treat a mismatch as a reason to set `DisableOnUnknownBuild = true`.
+
+**If you are picking this up: booting 0.7.1 once on any 1.0.12 server and
+reading two log lines closes this.** A disposable container with a throwaway
+world is enough - it needs no players.
+
+## Port status, 1.0.12
+
+| Change | Why |
+|---|---|
+| build refs -> `tools/server-managed-1012/` | 1.0.12 assemblies |
+| `[Compat] KnownGoodBuilds` default -> `1.0.7, 1.0.12`, moved to `Compat.DefaultKnownGoodBuilds` | gate list, now testable and treated as a floor |
+| `Compat.IsKnownOrShipped` + one-time log in `Plugin.Awake` | stale configs keep their patches |
+| version 0.7.0 -> 0.7.1 | |
+
+Everything else rebuilds unchanged. 43/43 tests (was 38).
+
+## Published
+
+| Where | What |
+|---|---|
+| GitHub release | [v0.7.1](https://github.com/Akoozie/ValheimTune/releases/tag/v0.7.1), marked Latest, `ValheimTune.dll` sha256 `220671f9...` 44,032 B + `ValheimTune-0.7.1.zip` |
+| Thunderstore | `Akoozie-ValheimTune` 0.7.1, uploaded 2026-09-11 15:01:33Z |
+| Tag | `v0.7.1-b25253791` in the analysis repo |
