@@ -9,6 +9,7 @@ namespace ValheimTune
         public static ConfigEntry<bool> AllPeersPerRound;
         public static ConfigEntry<float> RoundSeconds;
         public static ConfigEntry<int> SendRateMax, SendRateMin;
+        public static ConfigEntry<bool> OverrideSendRate, OverrideSendWindow;
         public static ConfigEntry<int> MaxPacketsPerPeerPerFrame;
         public static ConfigEntry<int> TargetFrameRate;
         public static ConfigEntry<int> ConfigReloadSeconds;
@@ -35,6 +36,8 @@ namespace ValheimTune
             RoundSeconds     = c.Bind("Sync", "RoundSeconds", 0.05f, new ConfigDescription("Round period when AllPeersPerRound is on. Vanilla 0.05.", new AcceptableValueRange<float>(0.01f, 1f)));
             SendRateMax      = c.Bind("Steam", "SendRateMaxBytesPerSec", 153600, "Steam per-connection send rate cap. Vanilla 153600 (150 KB/s). Try 1048576. Bounded by your upload / player count.");
             SendRateMin      = c.Bind("Steam", "SendRateMinBytesPerSec", 153600, "Leave at vanilla so the estimator can back off on loss.");
+            OverrideSendRate   = c.Bind("Steam", "OverrideSendRate", true, "Set false if another networking mod manages Steam send rates: ValheimTune then never writes them. Even when true, a rate left at vanilla (153600) is not written. Restart to apply.");
+            OverrideSendWindow = c.Bind("Sync", "OverrideSendWindow", true, "Set false if another networking mod changes the ZDO send queue size: ValheimTune then leaves ZDOMan.SendZDOs untouched. Even when true, nothing is changed while SendWindowBytes and MinHeadroomBytes are both vanilla. Restart to apply.");
             MaxPacketsPerPeerPerFrame = c.Bind("Receive", "MaxPacketsPerPeerPerFrame", 0, "Stop draining one peer's socket after this many packets in a frame; the rest wait in Steam's queue. 0 = vanilla (unlimited). Try 64.");
             TargetFrameRate = c.Bind("Server", "TargetFrameRate", 0, "Application.targetFrameRate for the headless server. 0 = do not touch. Round period is 0.05 + players/fps, so 30 -> 60 doubles the sync rate at 6 players. Costs CPU.");
             FloatingDropsRun = c.Bind("Cleanup", "FloatingDropsRun", false, "One-shot trigger: set true to scan for item drops floating in water. The plugin runs it on the next config reload and sets this back to false. Measured ~50 ms of main-thread stall on a 698k-ZDO world (one 67 ms frame, 2026-09-07).");

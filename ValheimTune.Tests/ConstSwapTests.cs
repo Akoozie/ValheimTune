@@ -30,6 +30,15 @@ public class ConstSwapTests
         Assert.Equal(2, ConstSwap.LastReplaced);
     }
 
+    // Issue #1: with another networking mod installed, off or vanilla must mean hands off.
+    [Theory]
+    [InlineData(true, 1048576, 153600, true)]
+    [InlineData(true, 153600, 153600, false)]
+    [InlineData(false, 1048576, 153600, false)]
+    [InlineData(false, 153600, 153600, false)]
+    public void OverrideOnlyWhenEnabledAndNotVanilla(bool enabled, int value, int vanilla, bool expected) =>
+        Assert.Equal(expected, ConstSwap.ShouldOverride(enabled, value, vanilla));
+
     [Fact]
     public void PreservesLabelsAndBlocksOnReplacedInstruction()
     {

@@ -14,12 +14,18 @@ namespace ValheimTune.Patches
         [HarmonyTranspiler]
         private static IEnumerable<CodeInstruction> SendZDOsWindow(IEnumerable<CodeInstruction> code)
         {
+            var original = new List<CodeInstruction>(code);
+            bool on = Cfg.OverrideSendWindow.Value;
+            if (!ConstSwap.ShouldOverride(on, Cfg.SendWindowBytes.Value, 10240) && !ConstSwap.ShouldOverride(on, Cfg.MinHeadroomBytes.Value, 2048))
+            {
+                Plugin.Log.LogInfo($"[ValheimTune] SendZDOs window left vanilla ({(on ? "values are vanilla" : "OverrideSendWindow = false")})");
+                return original;
+            }
             var map = new Dictionary<int, int>
             {
                 { 10240, Cfg.SendWindowBytes.Value },
                 { 2048, Cfg.MinHeadroomBytes.Value },
             };
-            var original = new List<CodeInstruction>(code);
             var result = new List<CodeInstruction>(ConstSwap.Replace(original, map));
             if (ConstSwap.LastReplaced != 3)
             {
@@ -59,19 +65,27 @@ namespace ValheimTune.Patches
         }
 
         // Vanilla pins SendRateMin = SendRateMax = 153600 globally (ZSteamSocket.cs:79-83).
-        // Re-apply with our values right after the game sets its own.
+        // Re-apply with our values right after the game sets its own. Each key is only
+        // written when it differs from vanilla, so a key we don't change stays whatever
+        // another networking mod set it to.
+        private const int VanillaSendRate = 153600;
         private static bool s_rateLogged;
 
         [HarmonyPatch(typeof(ZSteamSocket), nameof(ZSteamSocket.RegisterGlobalCallbacks))]
         [HarmonyPostfix]
         private static void SendRate()
         {
-            SetGlobalInt(ESteamNetworkingConfigValue.k_ESteamNetworkingConfig_SendRateMin, Cfg.SendRateMin.Value);
-            SetGlobalInt(ESteamNetworkingConfigValue.k_ESteamNetworkingConfig_SendRateMax, Cfg.SendRateMax.Value);
+            bool on = Cfg.OverrideSendRate.Value;
+            bool min = ConstSwap.ShouldOverride(on, Cfg.SendRateMin.Value, VanillaSendRate);
+            bool max = ConstSwap.ShouldOverride(on, Cfg.SendRateMax.Value, VanillaSendRate);
+            if (min) SetGlobalInt(ESteamNetworkingConfigValue.k_ESteamNetworkingConfig_SendRateMin, Cfg.SendRateMin.Value);
+            if (max) SetGlobalInt(ESteamNetworkingConfigValue.k_ESteamNetworkingConfig_SendRateMax, Cfg.SendRateMax.Value);
             if (!s_rateLogged)
             {
                 s_rateLogged = true;
-                Plugin.Log.LogInfo($"[ValheimTune] Steam send rate min {Cfg.SendRateMin.Value} max {Cfg.SendRateMax.Value} B/s");
+                Plugin.Log.LogInfo(min || max
+                    ? $"[ValheimTune] Steam send rate min {(min ? Cfg.SendRateMin.Value.ToString() : "untouched")} max {(max ? Cfg.SendRateMax.Value.ToString() : "untouched")} B/s"
+                    : $"[ValheimTune] Steam send rate left untouched ({(on ? "values are vanilla" : "OverrideSendRate = false")})");
             }
         }
 

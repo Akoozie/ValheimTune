@@ -10,6 +10,10 @@ namespace ValheimTune
     {
         public static int LastReplaced;
 
+        // Network overrides only engage when switched on AND asked to change something.
+        // At vanilla values we leave the game alone, so another networking mod's value stands.
+        public static bool ShouldOverride(bool enabled, int value, int vanilla) => enabled && value != vanilla;
+
         public static IEnumerable<CodeInstruction> Replace(IEnumerable<CodeInstruction> code, IReadOnlyDictionary<int, int> map)
         {
             LastReplaced = 0;

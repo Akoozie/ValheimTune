@@ -5,6 +5,24 @@
 network version 39). 0.6.0 and earlier target build 21981590 (game 0.221.12, network
 version 36).
 
+## 0.7.2 - 2026-09-13
+
+Plays nicely with other networking mods ([#1](https://github.com/Akoozie/ValheimTune/issues/1)).
+
+- **Vanilla now means hands off.** The Steam send-rate postfix used to write both
+  rates on every boot, even at the vanilla 153600, which could reset a rate another
+  networking mod had just set. Each rate is now only written when it differs from
+  vanilla. Likewise the `SendZDOs` window transpiler leaves the method untouched
+  while `SendWindowBytes` and `MinHeadroomBytes` are both vanilla. No change for
+  anyone who tuned these values.
+- **New `[Steam] OverrideSendRate` and `[Sync] OverrideSendWindow`** (default
+  `true`). Set either to `false` to stop ValheimTune touching that setting at all,
+  whatever the values say. Patch-time: restart to apply. The load log says which
+  one left the game alone and why.
+- Four new tests (47 total).
+
+**Not verified live.** Same caveat as 0.7.1.
+
 ## 0.7.1 - 2026-09-11
 
 Compatibility rebuild for Valheim 1.0.12 (build 25253791, network version 40).

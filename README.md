@@ -204,6 +204,7 @@ hot objects: Wood=69@(-327,-631) ...
 | `[Server] TargetFrameRate` | 0 | runtime | Override the server's hard-coded 30 fps. 0 = leave it. Sync round period is `0.05 s + players / fps`. |
 | `[Sync] SendWindowBytes` | 10240 | patch-time | Bytes in flight per player before the server stops queueing. Vanilla 10240. |
 | `[Sync] MinHeadroomBytes` | 2048 | patch-time | Below this much free window the player is skipped this round. Keep below the window. |
+| `[Sync] OverrideSendWindow` | true | patch-time | Set false if another networking mod changes the send queue size; `SendZDOs` is then left untouched. At vanilla window values nothing is changed either way. |
 | `[Sync] AllPeersPerRound` | false | runtime | Serve every player each round instead of one per frame. Pays off at 4+ players. |
 | `[Sync] RoundSeconds` | 0.05 | runtime | Round period when `AllPeersPerRound` is on. |
 | `[Sync] DirtySets` | **true** | runtime | Only consider changed objects each round. A watchdog falls back to vanilla if the change hook ever goes silent. |
@@ -213,6 +214,7 @@ hot objects: Wood=69@(-327,-631) ...
 | `[Sync] TopK` | 0 | runtime | Candidates ordered per round. 0 = `SendWindowBytes / 64`, never below 64. |
 | `[Steam] SendRateMaxBytesPerSec` | 153600 | patch-time | Steam per-connection send cap. Vanilla 150 KB/s. Do not exceed your upload divided by player count. |
 | `[Steam] SendRateMinBytesPerSec` | 153600 | patch-time | Leave at vanilla so Steam's estimator can back off on a lossy link. |
+| `[Steam] OverrideSendRate` | true | patch-time | Set false if another networking mod manages Steam send rates; ValheimTune then never writes them. A rate left at vanilla is never written either way. |
 | `[Receive] MaxPacketsPerPeerPerFrame` | 0 | runtime | Stop draining one player's socket after this many packets in a frame. 0 = vanilla. Try 64 if one player's burst ever stalls the rest. |
 | `[Cleanup] FloatingDropsRun` | false | one-shot | Set true to scan for item drops and felled logs floating in water. Resets itself. Dry run unless the next key is true. ~50 ms main-thread stall on a 698k-ZDO world. |
 | `[Cleanup] FloatingDropsDelete` | false | runtime | With `Run`: delete what the scan finds. Hourly backups first. |
