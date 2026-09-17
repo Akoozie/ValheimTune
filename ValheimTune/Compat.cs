@@ -10,7 +10,7 @@ namespace ValheimTune
         public static string GameVersion = "?";
 
         // Shipped default for [Compat] KnownGoodBuilds. Existing .cfg files keep their own value.
-        public const string DefaultKnownGoodBuilds = "1.0.7, 1.0.12";
+        public const string DefaultKnownGoodBuilds = "1.0.7, 1.0.12, 1.0.14";
 
         // The shipped list is a floor: config can add builds, never remove one this
         // release was built for. BepInEx keeps an existing cfg on upgrade, so without
