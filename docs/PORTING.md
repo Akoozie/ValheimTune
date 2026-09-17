@@ -527,3 +527,95 @@ Everything else rebuilds unchanged. 43/43 tests (was 38).
 | GitHub release | [v0.7.1](https://github.com/Akoozie/ValheimTune/releases/tag/v0.7.1), marked Latest, `ValheimTune.dll` sha256 `220671f9...` 44,032 B + `ValheimTune-0.7.1.zip` |
 | Thunderstore | `Akoozie-ValheimTune` 0.7.1, uploaded 2026-09-11 15:01:33Z |
 | Tag | `v0.7.1-b25253791` in the analysis repo |
+
+---
+
+# What actually happened: 1.0.14, 2026-09-17
+
+The third time through the loop, and the first one that was not an emergency.
+
+## Not an outage this time
+
+Valheim 1.0.14 is dedicated-server build **25364309** (client build 25364265),
+game version `1.0.14`, **network version 40 — unchanged from 1.0.12**. That
+single fact is the difference from the 1.0.12 port: `Version.c_networkVersion`
+did not move, so a 1.0.12 server keeps accepting 1.0.14 clients and nobody gets
+`incompatible version`. There was no lockout to react to.
+
+**Generalise this:** check `c_networkVersion` first. It tells you in one grep
+whether the patch is an outage or a chore.
+
+## Getting the assembly without the host
+
+SSH to the reference host needs a Tailscale browser check that a headless
+session cannot complete, so this port used SteamCMD instead — the path
+`tools/refresh-server.sh` was written for:
+
+```
+steamcmd +force_install_dir <dir> +login anonymous +app_update 896660 validate +quit
+```
+
+One trap: on a fresh SteamCMD the first invocation only self-updates and exits
+before running `+app_update`. Run it twice. The second run pulls the server in
+about two minutes.
+
+## The diff: the patched surface is untouched
+
+1.0.14 is a much broader patch than 1.0.12 — **32 source files, 569 changed
+lines** — but none of it is in the sync or networking path.
+
+| File | Changed lines |
+|---|---|
+| `ZDOMan.cs` | **0** |
+| `ZRpc.cs` | **0** |
+| `ZSteamSocket.cs` | **0** |
+| `ZDO.cs` | **0** |
+| `Game.cs` | **0** |
+| `Heightmap.cs` | **0** |
+| `ZoneSystem.cs` | **0** |
+
+Every anchor is at an identical line number to 1.0.12: `CreateSyncList` 1261,
+`ServerSortSendZDOS` 1360, `SendZDOToPeers2` 886, the `SendZDOs` window
+constants 10240/10240/2048 at 1060/1064/1065, and `ZDO.DataRevision` /
+`OwnerRevision` still auto-properties. The "What is version-sensitive" list
+scored **0 for 6** for the second port running.
+
+Where 1.0.14 actually lands: `Attack.cs`, `Character.cs`, `Humanoid.cs`,
+`Projectile.cs`, `SEMan.cs`, `Player.cs`, `Inventory.cs`, `InventoryGui.cs`,
+`Minimap.cs`, `Terminal.cs`, `TerrainComp.cs`, the settings GUI, and the
+graphics/camera files — combat, inventory, UI, client rendering.
+
+The one networking-adjacent edit is `ZNet.Save`, and it is client-side:
+
+```csharp
+// 1.0.14
+if (IsServer()) { RPC_Save(null); return; }
+Game.instance.SavePlayerProfile(setLogoutPoint: true);
+GetServerRPC()?.Invoke("Save");
+```
+
+A client issuing `save` now writes its own profile and sets a logout point
+before asking the server to save. The server branch is unchanged, and this
+plugin does not patch `ZNet`.
+
+## Port status, 1.0.14
+
+| Change | Why |
+|---|---|
+| build refs -> `tools/server-managed-1014/` | 1.0.14 assemblies |
+| `Compat.DefaultKnownGoodBuilds` -> `1.0.7, 1.0.12, 1.0.14` | gate list, still a floor |
+| version 0.7.2 -> 0.7.3 | |
+| `CompatTests` retargeted at 1.0.14, `SmokeTests` version string | the gate tests must name the build that shipped |
+
+Everything else rebuilds unchanged. 47/47 tests. Elapsed: about 40 minutes,
+most of it the SteamCMD download — the release-day loop's "30 minutes if
+nothing moved" held for the second time.
+
+## Still not verified live
+
+0.7.3 inherits the 0.7.1 and 0.7.2 caveat: the reference server is deliberately
+vanilla, so nothing has booted this DLL. A source diff cannot prove the two
+IL-level facts — that Harmony attaches to all 11 methods, and that the
+constant-swap transpiler finds exactly 3 constants. Both are visible in the
+first two log lines on any 1.0.14 server; one boot of a disposable container
+closes all three releases at once.
