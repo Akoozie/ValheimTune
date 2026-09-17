@@ -619,3 +619,21 @@ IL-level facts — that Harmony attaches to all 11 methods, and that the
 constant-swap transpiler finds exactly 3 constants. Both are visible in the
 first two log lines on any 1.0.14 server; one boot of a disposable container
 closes all three releases at once.
+
+## Published
+
+| Where | What |
+|---|---|
+| GitHub release | [v0.7.3](https://github.com/Akoozie/ValheimTune/releases/tag/v0.7.3), marked Latest, `ValheimTune.dll` sha256 `de58d1ed...` 45,568 B + `ValheimTune-0.7.3.zip` sha256 `e10ab7f2...` 35,918 B. Both re-downloaded and hashed after upload. It also carries 0.7.2 for anyone coming from 0.7.1. |
+| Tag | `v0.7.3-b25364309` in the analysis repo |
+| Thunderstore | **not yet** — manual upload, needs the account |
+
+### One thing this port taught that the previous two did not
+
+**The Release build is not byte-reproducible.** Building the same commit twice
+gave two different DLL hashes (`3703e443...` then `de58d1ed...`). That matters
+because `thunderstore/build.sh` copies whatever currently sits in `bin/Release`
+into the zip: rebuild the DLL without rebuilding the zip and the release ships
+two different binaries under one version number. Build once, package, attach
+both, then verify by downloading the assets back and hashing them. That last
+step is what caught it.
