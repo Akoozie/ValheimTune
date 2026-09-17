@@ -1,9 +1,43 @@
 # Changelog
 
-0.7.1 targets dedicated-server build 25253791 (game 1.0.12, network version
-40) and remains valid for 1.0.7. 0.7.0 targets build 25185644 (game 1.0.7,
-network version 39). 0.6.0 and earlier target build 21981590 (game 0.221.12, network
+0.7.3 targets dedicated-server build 25364309 (game 1.0.14, network version
+40) and remains valid for 1.0.12 and 1.0.7. 0.7.1 targets build 25253791 (game
+1.0.12, network version 40). 0.7.0 targets build 25185644 (game 1.0.7, network
+version 39). 0.6.0 and earlier target build 21981590 (game 0.221.12, network
 version 36).
+
+## 0.7.3 - 2026-09-17
+
+Compatibility rebuild for Valheim 1.0.14 (dedicated-server build 25364309).
+No behaviour change.
+
+**Network version is still 40**, the same as 1.0.12, so unlike the 1.0.12
+patch this one does not lock older servers out. A 1.0.12 server keeps accepting
+1.0.14 clients; update when it suits you.
+
+**Not verified live.** Same caveat as 0.7.1 and 0.7.2. What it rests on: a
+decompile diff of the 1.0.14 dedicated-server assembly against 1.0.12 shows
+every file this plugin patches is unchanged outright - `ZDOMan.cs`, `ZRpc.cs`,
+`ZSteamSocket.cs`, `ZDO.cs`, `Game.cs`, `Heightmap.cs` and `ZoneSystem.cs` all
+diff to zero lines. The anchors are at identical line numbers: `CreateSyncList`
+(1261), `ServerSortSendZDOS` (1360), `SendZDOToPeers2` (886), the `SendZDOs`
+window constants 10240/10240/2048 (1060/1064/1065), and `ZDO.DataRevision` /
+`OwnerRevision` still auto-properties. 1.0.14 is a broad patch - 32 source files
+changed, in combat, inventory, UI and settings - but none of it is in the sync
+or networking path. The only networking-adjacent edit is `ZNet.Save`, which
+1.0.14 makes save the player profile on a client-issued save; this plugin does
+not patch it.
+
+It compiles against the 1.0.14 assemblies and 47/47 unit tests pass. What stays
+unproven is IL-level and a source diff cannot settle it: that Harmony attaches
+to all 11 methods, and that the constant-swap transpiler still finds exactly 3
+constants. Both show in the first two log lines on boot - if the load line does
+not say `11 methods patched` or the window line does not say
+`3 constants replaced (expected 3)`, set `[Compat] DisableOnUnknownBuild = true`
+and report it.
+
+- `[Compat] KnownGoodBuilds` shipped list is now `1.0.7, 1.0.12, 1.0.14`. It is
+  a floor, so an existing config keeps its patches without an edit.
 
 ## 0.7.2 - 2026-09-13
 

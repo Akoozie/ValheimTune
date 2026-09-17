@@ -17,16 +17,22 @@ public class CompatTests
 
     [Fact]
     public void ShippedDefaultCoversThePortedBuild() =>
+        Assert.True(Compat.IsKnown("1.0.14", Compat.DefaultKnownGoodBuilds));
+
+    [Fact]
+    public void ShippedDefaultStillCoversThePreviousBuilds()
+    {
         Assert.True(Compat.IsKnown("1.0.12", Compat.DefaultKnownGoodBuilds));
-
-    [Fact]
-    public void ShippedDefaultStillCoversThePreviousBuild() =>
         Assert.True(Compat.IsKnown("1.0.7", Compat.DefaultKnownGoodBuilds));
+    }
 
-    // The upgrade case: a 0.7.0 config that predates 1.0.12 must still get patches.
+    // The upgrade case: a config that predates the ported build must still get patches.
     [Fact]
-    public void StaleConfigStillGetsTheShippedBuild() =>
+    public void StaleConfigStillGetsTheShippedBuild()
+    {
         Assert.True(Compat.IsKnownOrShipped("1.0.12", "1.0.7"));
+        Assert.True(Compat.IsKnownOrShipped("1.0.14", "1.0.7, 1.0.12"));
+    }
 
     [Fact]
     public void ConfigCanStillAddAnUnshippedBuild() =>
