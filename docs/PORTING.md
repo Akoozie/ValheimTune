@@ -626,7 +626,7 @@ closes all three releases at once.
 |---|---|
 | GitHub release | [v0.7.3](https://github.com/Akoozie/ValheimTune/releases/tag/v0.7.3), marked Latest, `ValheimTune.dll` sha256 `de58d1ed...` 45,568 B + `ValheimTune-0.7.3.zip` sha256 `e10ab7f2...` 35,918 B. Both re-downloaded and hashed after upload. It also carries 0.7.2 for anyone coming from 0.7.1. |
 | Tag | `v0.7.3-b25364309` in the analysis repo |
-| Thunderstore | **not yet** — manual upload, needs the account |
+| Thunderstore | `Akoozie-ValheimTune` 0.7.3, uploaded by Akash 2026-09-17 17:09:49Z. Downloaded back and verified: the DLL inside the package hashes to `de58d1ed...`, the same compile as the GitHub asset |
 
 ### One thing this port taught that the previous two did not
 
