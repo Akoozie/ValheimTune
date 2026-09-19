@@ -1,11 +1,11 @@
 # ValheimTune
 
-> ### ✅ Valheim 1.0.14 ready
-> **0.7.3 runs on game 1.0.14 (network version 40)**, and still on 1.0.12 (40)
-> and 1.0.7 (39). It is a compatibility rebuild: every method the plugin
-> patches is byte-identical across all three builds, but 0.7.3 has **not** been
-> booted on 1.0.14 — read the [CHANGELOG](CHANGELOG.md) before you deploy it.
-> Upgrading from [0.7.2](../../releases/tag/v0.7.2) needs no config edit.
+> ### ✅ Valheim 1.0.15 ready
+> **0.7.4 runs on game 1.0.15 (network version 40)**, and still on 1.0.14 and
+> 1.0.12 (40) and 1.0.7 (39). It is a compatibility rebuild: every method the plugin
+> patches is byte-identical across all four builds, but 0.7.4 has **not** been
+> booted on 1.0.15 — read the [CHANGELOG](CHANGELOG.md) before you deploy it.
+> Upgrading from [0.7.3](../../releases/tag/v0.7.3) needs no config edit.
 > Running game 0.221.12? Use [0.6.0](../../releases/tag/v0.6.0) instead — the
 > version gate will refuse to apply these patches to an older build.
 >
@@ -18,12 +18,12 @@ like a small one.
 the wire format is untouched, and vanilla clients connect exactly as before.
 
 ```
-game     1.0.14 and 1.0.12 (network version 40), 1.0.7 (39), dedicated server only
+game     1.0.15, 1.0.14 and 1.0.12 (network version 40), 1.0.7 (39), dedicated server only
 needs    BepInEx 5.4.x
-status   0.7.3 is a compatibility rebuild for 1.0.14. Every method this
-         plugin patches is byte-identical across 1.0.7, 1.0.12 and 1.0.14
-         (decompile diff), it compiles against the 1.0.14 assemblies and
-         47/47 unit tests pass - but it has NOT been booted on 1.0.14. 0.7.0
+status   0.7.4 is a compatibility rebuild for 1.0.15. Every method this
+         plugin patches is byte-identical across 1.0.7 to 1.0.15
+         (decompile diff), it compiles against the 1.0.15 assemblies and
+         its unit tests pass - but it has NOT been booted on 1.0.15. 0.7.0
          WAS verified live on 1.0.7, 2026-09-09: 698,000 objects, a
          12,000-instance base, 2-6 players.
 ```
@@ -48,7 +48,7 @@ comes from is in [How it works](#how-it-works).
 
 - Valheim **dedicated server** (Steam app 896660). Not the in-client host.
 - BepInEx 5.4.x for Valheim ([BepInExPack_Valheim](https://thunderstore.io/c/valheim/p/denikson/BepInExPack_Valheim/)).
-- Game version listed in `[Compat] KnownGoodBuilds` (currently `1.0.7, 1.0.12, 1.0.14`).
+- Game version listed in `[Compat] KnownGoodBuilds` (currently `1.0.7, 1.0.12, 1.0.14, 1.0.15`).
   On any other version the plugin runs in vanilla + measurement mode and says
   so in the log.
 
@@ -67,7 +67,7 @@ steps below are the normal route.
 4. Check the log for:
 
 ```
-[ValheimTune] 0.7.3 loaded on game 1.0.14 (net 40), 11 methods patched, replacements on
+[ValheimTune] 0.7.4 loaded on game 1.0.15 (net 40), 11 methods patched, replacements on
 [ValheimTune] SendZDOs window 10240/2048, 3 constants replaced (expected 3)
 ```
 
@@ -102,8 +102,8 @@ list shipped in the release is treated as a floor, and your config can only
 *add* to it. You will see this once on boot:
 
 ```
-[ValheimTune] game 1.0.14 is not in your KnownGoodBuilds (1.0.7) but ships in
-this release (1.0.7, 1.0.12, 1.0.14); using the shipped list. Your config is
+[ValheimTune] game 1.0.15 is not in your KnownGoodBuilds (1.0.7) but ships in
+this release (1.0.7, 1.0.12, 1.0.14, 1.0.15); using the shipped list. Your config is
 from an older version.
 ```
 
@@ -112,7 +112,7 @@ Tidy the line up if you like; nothing depends on it.
 ### If the log says `replacements OFF`
 
 ```
-[ValheimTune] game 1.0.15 not in KnownGoodBuilds (1.0.7, 1.0.12, 1.0.14):
+[ValheimTune] game 1.0.16 not in KnownGoodBuilds (1.0.7, 1.0.12, 1.0.14, 1.0.15):
 replacement patches inactive, running vanilla + measurement
 ```
 
@@ -133,7 +133,7 @@ you keep the diagnostics.
 
 ```ini
 [Compat]
-KnownGoodBuilds = 1.0.7, 1.0.12, 1.0.14, 1.0.15
+KnownGoodBuilds = 1.0.7, 1.0.12, 1.0.14, 1.0.15, 1.0.16
 ```
 
 Restart. Harmony will refuse to patch any method whose signature changed and log
@@ -218,7 +218,7 @@ hot objects: Wood=69@(-327,-631) ...
 | `[Receive] MaxPacketsPerPeerPerFrame` | 0 | runtime | Stop draining one player's socket after this many packets in a frame. 0 = vanilla. Try 64 if one player's burst ever stalls the rest. |
 | `[Cleanup] FloatingDropsRun` | false | one-shot | Set true to scan for item drops and felled logs floating in water. Resets itself. Dry run unless the next key is true. ~50 ms main-thread stall on a 698k-ZDO world. |
 | `[Cleanup] FloatingDropsDelete` | false | runtime | With `Run`: delete what the scan finds. Hourly backups first. |
-| `[Compat] KnownGoodBuilds` | 1.0.7, 1.0.12, 1.0.14 | patch-time | Game versions this plugin build was verified against. Comma-separated. |
+| `[Compat] KnownGoodBuilds` | 1.0.7, 1.0.12, 1.0.14, 1.0.15 | patch-time | Game versions this plugin build was verified against. Comma-separated. |
 | `[Compat] DisableOnUnknownBuild` | true | patch-time | On an unlisted version, run only measurement, the send-rate cap and the constant swap. |
 
 </details>

@@ -17,11 +17,12 @@ public class CompatTests
 
     [Fact]
     public void ShippedDefaultCoversThePortedBuild() =>
-        Assert.True(Compat.IsKnown("1.0.14", Compat.DefaultKnownGoodBuilds));
+        Assert.True(Compat.IsKnown("1.0.15", Compat.DefaultKnownGoodBuilds));
 
     [Fact]
     public void ShippedDefaultStillCoversThePreviousBuilds()
     {
+        Assert.True(Compat.IsKnown("1.0.14", Compat.DefaultKnownGoodBuilds));
         Assert.True(Compat.IsKnown("1.0.12", Compat.DefaultKnownGoodBuilds));
         Assert.True(Compat.IsKnown("1.0.7", Compat.DefaultKnownGoodBuilds));
     }
@@ -32,6 +33,7 @@ public class CompatTests
     {
         Assert.True(Compat.IsKnownOrShipped("1.0.12", "1.0.7"));
         Assert.True(Compat.IsKnownOrShipped("1.0.14", "1.0.7, 1.0.12"));
+        Assert.True(Compat.IsKnownOrShipped("1.0.15", "1.0.7, 1.0.12, 1.0.14"));
     }
 
     [Fact]
