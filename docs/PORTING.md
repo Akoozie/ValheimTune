@@ -637,3 +637,48 @@ into the zip: rebuild the DLL without rebuilding the zip and the release ships
 two different binaries under one version number. Build once, package, attach
 both, then verify by downloading the assets back and hashing them. That last
 step is what caught it.
+
+# What actually happened: 1.0.15, 2026-09-19
+
+Valheim 1.0.15 is dedicated-server build **25390671**, released 2026-09-18,
+game version `1.0.15`, **network version 40 — unchanged**. A chore, not an
+outage, for the second port running.
+
+## The diff
+
+Six files change against 1.0.14, and none of them is patched by the plugin:
+
+| File | What |
+|---|---|
+| `TerrainComp.cs` | the duplicated-terrain fix: merge path now destroys the duplicate unconditionally after claiming ownership, and drops it from `s_instances` |
+| `Inventory.cs`, `InventoryGrid.cs`, `InventoryGui.cs`, `ItemDrop.cs` | the dev-command "cheated item" marking fix |
+| `Version.cs` | `CurrentVersion` 1.0.14 -> 1.0.15 only |
+| `ZDOMan.cs` `ZRpc.cs` `ZSteamSocket.cs` `ZDO.cs` `Game.cs` `Heightmap.cs` `ZoneSystem.cs` | **0** |
+
+## Why it still needed a release
+
+`DisableOnUnknownBuild` defaults to `true`, so 0.7.3 on 1.0.15 silently runs
+every replacement patch as vanilla. A release is needed on **every** game
+version bump, even one that touches nothing, until the gate changes from an
+allow-list to something like "same network version + unchanged anchors".
+
+## Port status, 1.0.15
+
+| Change | Why |
+|---|---|
+| build refs -> `tools/server-managed-1015/` (mirror: `lib/server-managed/` refreshed) | 1.0.15 assemblies |
+| `Compat.DefaultKnownGoodBuilds` -> `1.0.7, 1.0.12, 1.0.14, 1.0.15` | gate list, still a floor |
+| version 0.7.3 -> 0.7.4 | |
+| `CompatTests` / `SmokeTests` retargeted | |
+
+47/47 tests. Built once, packaged, released, both assets downloaded back and hashed.
+
+## Published
+
+| Where | What |
+|---|---|
+| GitHub release | [v0.7.4](https://github.com/Akoozie/ValheimTune/releases/tag/v0.7.4), Latest. `ValheimTune.dll` sha256 `4e6f3802...` 45,568 B; `ValheimTune-0.7.4.zip` sha256 `4f0230e4...` 35,926 B; the DLL inside the zip hashes to `4e6f3802...` too |
+| Tag | `v0.7.4-b25390671` in the analysis repo |
+| Thunderstore | **pending** - Akash uploads `ValheimTune-0.7.4.zip` |
+
+Not verified live, same caveat as 0.7.1-0.7.3.
