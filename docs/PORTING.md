@@ -679,6 +679,6 @@ allow-list to something like "same network version + unchanged anchors".
 |---|---|
 | GitHub release | [v0.7.4](https://github.com/Akoozie/ValheimTune/releases/tag/v0.7.4), Latest. `ValheimTune.dll` sha256 `4e6f3802...` 45,568 B; `ValheimTune-0.7.4.zip` sha256 `4f0230e4...` 35,926 B; the DLL inside the zip hashes to `4e6f3802...` too |
 | Tag | `v0.7.4-b25390671` in the analysis repo |
-| Thunderstore | **pending** - Akash uploads `ValheimTune-0.7.4.zip` |
+| Thunderstore | `Akoozie-ValheimTune` 0.7.4, uploaded by Akash 2026-09-19 10:42:01Z. Downloaded back: the package is byte-identical to the GitHub zip (`4f0230e4...`) and the DLL inside hashes to `4e6f3802...` |
 
 Not verified live, same caveat as 0.7.1-0.7.3.
