@@ -1,10 +1,30 @@
 # Changelog
 
-0.7.3 targets dedicated-server build 25364309 (game 1.0.14, network version
-40) and remains valid for 1.0.12 and 1.0.7. 0.7.1 targets build 25253791 (game
+0.7.4 targets dedicated-server build 25390671 (game 1.0.15, network version
+40) and remains valid for 1.0.14, 1.0.12 and 1.0.7. 0.7.3 targets build
+25364309 (game 1.0.14, network version 40). 0.7.1 targets build 25253791 (game
 1.0.12, network version 40). 0.7.0 targets build 25185644 (game 1.0.7, network
 version 39). 0.6.0 and earlier target build 21981590 (game 0.221.12, network
 version 36).
+
+## 0.7.4 - 2026-09-19
+
+Compatibility rebuild for Valheim 1.0.15 (dedicated-server build 25390671).
+No behaviour change.
+
+**Why you want it:** on 1.0.15, 0.7.3 does not list the build in
+`KnownGoodBuilds`, so with the default `DisableOnUnknownBuild = true` every
+replacement patch falls back to vanilla and only the stats line keeps running.
+0.7.4 adds 1.0.15 to the shipped list. No config edit needed.
+
+**Network version is still 40**, so 1.0.15 locks no one out.
+
+**Not verified live.** Same caveat as 0.7.1 to 0.7.3. A decompile diff of 1.0.15
+against 1.0.14 changes six files: `TerrainComp.cs` (the duplicated-terrain fix),
+`Inventory.cs`, `InventoryGrid.cs`, `InventoryGui.cs`, `ItemDrop.cs` (the
+cheated-item fix), and `Version.cs`. Every file this plugin patches - `ZDOMan.cs`,
+`ZRpc.cs`, `ZSteamSocket.cs`, `ZDO.cs`, `Game.cs`, `Heightmap.cs`, `ZoneSystem.cs` -
+is unchanged.
 
 ## 0.7.3 - 2026-09-17
 

@@ -10,7 +10,7 @@ namespace ValheimTune
     public class Plugin : BaseUnityPlugin
     {
         public const string Guid = "akoozie.valheimtune";
-        public const string Version = "0.7.3";
+        public const string Version = "0.7.4";
         private const float WatchdogWindowSeconds = 10f;
         public static ManualLogSource Log;
         public static Plugin Instance;
