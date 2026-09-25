@@ -682,3 +682,45 @@ allow-list to something like "same network version + unchanged anchors".
 | Thunderstore | `Akoozie-ValheimTune` 0.7.4, uploaded by Akash 2026-09-19 10:42:01Z. Downloaded back: the package is byte-identical to the GitHub zip (`4f0230e4...`) and the DLL inside hashes to `4e6f3802...` |
 
 Not verified live, same caveat as 0.7.1-0.7.3.
+
+# What actually happened: 1.0.16, 2026-09-25
+
+Valheim 1.0.16 is dedicated-server build **25527701**, released 2026-09-25,
+game version `1.0.16`, **network version 40 — unchanged**. A chore again, the
+third in a row. Assemblies from SteamCMD, decompile in `src_server_1016/`.
+
+## The diff
+
+19 files change against 1.0.15 (263 lines), and none of them is patched by the plugin:
+
+| File | What |
+|---|---|
+| `SaveSystem.cs` | backup restore only mounts/unmounts for cloud sources |
+| `SpawnSystem.cs` | spawn-hash counter fix (separate counter from the outer loop) |
+| `TerrainComp.cs` | duplicate terrain compilers collected in `s_duplicateInstances`, resolved in a new `Start()` |
+| `Player.cs` | base-value timer block restructured |
+| `Achievements.cs`, `ObjectDB.cs`, `PlayerProfile.cs` | `m_consumablesExcluded`: non-consumable food excluded from the food achievement |
+| `ArmorStand`, `Fireplace`, `ItemStand`, `SnowRoller`, `TreeLog`, `ReflectionUpdate`, `PlayerController`, gamepad/settings/UI files | client and gameplay fixes |
+| `Version.cs` | `CurrentVersion` 1.0.15 -> 1.0.16 only |
+| `ZDOMan.cs` `ZRpc.cs` `ZSteamSocket.cs` `ZDO.cs` `Game.cs` `Heightmap.cs` `ZoneSystem.cs` | **0** |
+
+## Port status, 1.0.16
+
+| Change | Why |
+|---|---|
+| build refs -> `tools/server-managed-1016/` (mirror: `lib/server-managed/` refreshed) | 1.0.16 assemblies |
+| `Compat.DefaultKnownGoodBuilds` -> `1.0.7, 1.0.12, 1.0.14, 1.0.15, 1.0.16` | gate list, still a floor |
+| version 0.7.4 -> 0.7.5 | |
+| `CompatTests` / `SmokeTests` retargeted | |
+
+47/47 tests. Analysis-repo `CHANGELOG.md` had missed the 0.7.4 entry; it is now a copy of the mirror's again.
+
+## Published
+
+| Where | What |
+|---|---|
+| GitHub release | [v0.7.5](https://github.com/Akoozie/ValheimTune/releases/tag/v0.7.5). `ValheimTune.dll` sha256 `1f4337de...` 45,568 B; `ValheimTune-0.7.5.zip` sha256 `4ff65a7e...` 35,942 B |
+| Tag | `v0.7.5-b25527701` in the analysis repo |
+| Thunderstore | **not uploaded yet** - manual, Akash |
+
+Not verified live, same caveat as 0.7.1-0.7.4.
