@@ -721,6 +721,6 @@ third in a row. Assemblies from SteamCMD, decompile in `src_server_1016/`.
 |---|---|
 | GitHub release | [v0.7.5](https://github.com/Akoozie/ValheimTune/releases/tag/v0.7.5). `ValheimTune.dll` sha256 `1f4337de...` 45,568 B; `ValheimTune-0.7.5.zip` sha256 `4ff65a7e...` 35,942 B |
 | Tag | `v0.7.5-b25527701` in the analysis repo |
-| Thunderstore | **not uploaded yet** - manual, Akash |
+| Thunderstore | `Akoozie-ValheimTune` 0.7.5, uploaded by Akash 2026-09-25 18:43:46Z. Downloaded back: the package is byte-identical to the GitHub zip (`4ff65a7e...`) and the DLL inside hashes to `1f4337de...` |
 
 Not verified live, same caveat as 0.7.1-0.7.4.
