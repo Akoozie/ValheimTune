@@ -1,11 +1,33 @@
 # Changelog
 
-0.7.4 targets dedicated-server build 25390671 (game 1.0.15, network version
-40) and remains valid for 1.0.14, 1.0.12 and 1.0.7. 0.7.3 targets build
+0.7.5 targets dedicated-server build 25527701 (game 1.0.16, network version
+40) and remains valid for 1.0.15, 1.0.14, 1.0.12 and 1.0.7. 0.7.4 targets
+build 25390671 (game 1.0.15, network version 40). 0.7.3 targets build
 25364309 (game 1.0.14, network version 40). 0.7.1 targets build 25253791 (game
 1.0.12, network version 40). 0.7.0 targets build 25185644 (game 1.0.7, network
 version 39). 0.6.0 and earlier target build 21981590 (game 0.221.12, network
 version 36).
+
+## 0.7.5 - 2026-09-25
+
+Compatibility rebuild for Valheim 1.0.16 (dedicated-server build 25527701).
+No behaviour change.
+
+**Why you want it:** on 1.0.16, 0.7.4 does not list the build in
+`KnownGoodBuilds`, so with the default `DisableOnUnknownBuild = true` every
+replacement patch falls back to vanilla and only the stats line keeps running.
+0.7.5 adds 1.0.16 to the shipped list. No config edit needed.
+
+**Network version is still 40**, so 1.0.16 locks no one out.
+
+**Not verified live.** Same caveat as 0.7.1 to 0.7.4. A decompile diff of 1.0.16
+against 1.0.15 changes 19 files, all gameplay or client side: `SaveSystem.cs`
+(cloud-only mount on backup restore), `SpawnSystem.cs` (spawn-hash counter fix),
+`TerrainComp.cs` (duplicate handling again), `Player.cs`, `Achievements.cs`,
+`ObjectDB.cs`, `PlayerProfile.cs` (food-achievement exclusions), a handful of
+UI and gamepad files, and `Version.cs`. Every file this plugin patches -
+`ZDOMan.cs`, `ZRpc.cs`, `ZSteamSocket.cs`, `ZDO.cs`, `Game.cs`, `Heightmap.cs`,
+`ZoneSystem.cs` - is unchanged.
 
 ## 0.7.4 - 2026-09-19
 
