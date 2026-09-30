@@ -19,6 +19,7 @@ OUT="$TS/build"
 rm -rf "$OUT" && mkdir -p "$OUT/plugins"
 cp "$TS/manifest.json" "$TS/icon.png" "$OUT/"
 cp README.md "$OUT/README.md"
+cp CHANGELOG.md "$OUT/CHANGELOG.md"   # Thunderstore shows it as the Changelog tab
 cp "$DLL" "$OUT/plugins/ValheimTune.dll"
 
 ZIP="$TS/ValheimTune-$VERSION.zip"

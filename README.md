@@ -6,9 +6,9 @@
 > server has — player edits skipped by the incremental save, spawners duplicating
 > creatures after a restart, and a 100 ms server freeze on every disconnect — plus
 > two sync gaps found in review. It has **not** been booted on 1.0.16 — read the
-> [CHANGELOG](CHANGELOG.md) before you deploy it.
-> Upgrading from [0.7.6](../../releases/tag/v0.7.6) needs no config edit.
-> Running game 0.221.12? Use [0.6.0](../../releases/tag/v0.6.0) instead — the
+> [CHANGELOG](https://github.com/Akoozie/ValheimTune/blob/main/CHANGELOG.md) before you deploy it.
+> Upgrading from [0.7.6](https://github.com/Akoozie/ValheimTune/releases/tag/v0.7.6) needs no config edit.
+> Running game 0.221.12? Use [0.6.0](https://github.com/Akoozie/ValheimTune/releases/tag/v0.6.0) instead — the
 > version gate will refuse to apply these patches to an older build.
 >
 > On Thunderstore: [`Akoozie-ValheimTune`](https://thunderstore.io/c/valheim/p/Akoozie/ValheimTune/)
@@ -333,7 +333,7 @@ adapt the `docker` lines to your setup.
 
 ## When the game updates
 
-See [`docs/PORTING.md`](docs/PORTING.md). Short version: the plugin notices,
+See [`docs/PORTING.md`](https://github.com/Akoozie/ValheimTune/blob/main/docs/PORTING.md). Short version: the plugin notices,
 switches its replacement patches off, and logs it. Players play vanilla plus
 the stats line until a rebuild adds the new version to `KnownGoodBuilds`.
 

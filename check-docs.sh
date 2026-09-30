@@ -28,6 +28,9 @@ has README.md "$V loaded on game $NEWEST"
 # the "unknown build" example must name a build that really is unknown
 EX=$(tr -d '\r' < README.md | grep -oE 'game [0-9.]+ not in KnownGoodBuilds' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
 for b in $EX; do echo "$BUILDS" | tr ',' '\n' | tr -d ' ' | grep -qx "$b" && bad "README.md unknown-build example $b is a known build"; done
+# README ships to Thunderstore and mod managers, where only absolute links and #anchors resolve
+REL=$(tr -d '\r' < README.md | grep -oE '\]\([^)h#][^)]*\)' | sort -u | tr '\n' ' ')
+[ -z "$REL" ] || bad "README.md has relative links (broken on Thunderstore): $REL"
 
 if [ -f CHANGELOG.md ]; then
   TOP=$(grep -m1 -oE '^## [0-9.]+' CHANGELOG.md | cut -c4-)
