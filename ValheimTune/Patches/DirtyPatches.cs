@@ -74,6 +74,16 @@ namespace ValheimTune.Patches
         [HarmonyPostfix]
         private static void OwnerRevisionSet(ZDO __instance) => Mark(__instance.m_uid, isOwner: true);
 
+        // A ZDO the server creates itself touches neither setter: Initialize, SetOwnerInternal and
+        // Deserialize write fields directly. Without this, a server-side clone (ServersideQoL's
+        // PrefabConfigurator recreates pieces this way) reached players only at the next
+        // ReconcileSeconds full scan. Every creation path (ZNetView.Awake, the public overload,
+        // RPC_ZDOData) goes through this private overload. Counted as an owner mark so the
+        // watchdog, which reads data marks only, is unaffected.
+        [HarmonyPatch(typeof(ZDOMan), "CreateNewZDO", new[] { typeof(ZDOID), typeof(Vector3), typeof(int) })]
+        [HarmonyPostfix]
+        private static void CreateNewZDOPost(ZDO __result) => Mark(__result.m_uid, isOwner: true);
+
         private static void Mark(ZDOID id, bool isOwner)
         {
             if (id == ZDOID.None) return;
