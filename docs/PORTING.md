@@ -774,4 +774,4 @@ Documentation-only release; code identical to 0.7.7 apart from the version strin
 |---|---|
 | GitHub release | [v0.7.8](https://github.com/Akoozie/ValheimTune/releases/tag/v0.7.8). `ValheimTune.dll` sha256 `8043cd81...` 55,808 B; `ValheimTune-0.7.8.zip` sha256 `cea2368c...` 48,859 B |
 | Tag | `v0.7.8-b25527701` in the analysis repo |
-| Thunderstore | pending manual upload |
+| Thunderstore | `Akoozie-ValheimTune` 0.7.8, uploaded by Akash 2026-09-30 21:12:56Z. Downloaded back: the package is byte-identical to the GitHub zip (`cea2368c...`) and the DLL inside hashes to `8043cd81...`; the version page renders absolute links. The package page is CDN-cached (`s-maxage=300, stale-while-revalidate=600`), so it showed the 0.7.7 README for several minutes after upload |
