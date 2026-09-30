@@ -1,11 +1,12 @@
 # ValheimTune
 
 > ### ✅ Valheim 1.0.16 ready
-> **0.7.5 runs on game 1.0.16 (network version 40)**, and still on 1.0.15,
-> 1.0.14 and 1.0.12 (40) and 1.0.7 (39). It is a compatibility rebuild: every method the plugin
-> patches is byte-identical across all five builds, but 0.7.5 has **not** been
-> booted on 1.0.16 — read the [CHANGELOG](CHANGELOG.md) before you deploy it.
-> Upgrading from [0.7.4](../../releases/tag/v0.7.4) needs no config edit.
+> **0.7.6 runs on game 1.0.16 (network version 40)**, and still on 1.0.15,
+> 1.0.14 and 1.0.12 (40) and 1.0.7 (39). It fixes building pieces going
+> invisible for up to 30 s when a server-side mod (ServersideQoL
+> PrefabConfigurator) recreates them. It has **not** been booted on 1.0.16 —
+> read the [CHANGELOG](CHANGELOG.md) before you deploy it.
+> Upgrading from [0.7.5](../../releases/tag/v0.7.5) needs no config edit.
 > Running game 0.221.12? Use [0.6.0](../../releases/tag/v0.6.0) instead — the
 > version gate will refuse to apply these patches to an older build.
 >
@@ -20,7 +21,7 @@ the wire format is untouched, and vanilla clients connect exactly as before.
 ```
 game     1.0.16, 1.0.15, 1.0.14 and 1.0.12 (network version 40), 1.0.7 (39), dedicated server only
 needs    BepInEx 5.4.x
-status   0.7.5 is a compatibility rebuild for 1.0.16. Every method this
+status   0.7.6 is a bug fix on top of the 1.0.16 rebuild. Every method this
          plugin patches is byte-identical across 1.0.7 to 1.0.16
          (decompile diff), it compiles against the 1.0.16 assemblies and
          its unit tests pass - but it has NOT been booted on 1.0.16. 0.7.0
@@ -67,7 +68,7 @@ steps below are the normal route.
 4. Check the log for:
 
 ```
-[ValheimTune] 0.7.5 loaded on game 1.0.16 (net 40), 11 methods patched, replacements on
+[ValheimTune] 0.7.6 loaded on game 1.0.16 (net 40), 12 methods patched, replacements on
 [ValheimTune] SendZDOs window 10240/2048, 3 constants replaced (expected 3)
 ```
 
@@ -244,15 +245,16 @@ Each row is one measured problem and the patch that answers it.
 </details>
 
 <details>
-<summary><b>The 11 patched methods</b></summary>
+<summary><b>The 12 patched methods</b></summary>
 
-Harmony patches on 11 methods of the dedicated-server assembly, all in
+Harmony patches on 12 methods of the dedicated-server assembly, all in
 `Patches/`:
 
 | Method | Patch | Purpose |
 |---|---|---|
 | `ZDOMan.CreateSyncList` | prefix + postfix | Dirty sets, relay throttle; timing |
 | `ZDO.DataRevision` / `OwnerRevision` setters | postfix | Mark changed objects |
+| `ZDOMan.CreateNewZDO` | postfix | Mark objects the server creates itself |
 | `ZDOMan.ServerSortSendZDOS` | prefix | Top-K selection |
 | `ZDOMan.SendZDOs` | transpiler + prefix/postfix | Window constants; timing |
 | `ZDOMan.SendZDOToPeers2` | prefix | All players per round |

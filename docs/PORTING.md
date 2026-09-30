@@ -724,3 +724,23 @@ third in a row. Assemblies from SteamCMD, decompile in `src_server_1016/`.
 | Thunderstore | `Akoozie-ValheimTune` 0.7.5, uploaded by Akash 2026-09-25 18:43:46Z. Downloaded back: the package is byte-identical to the GitHub zip (`4ff65a7e...`) and the DLL inside hashes to `1f4337de...` |
 
 Not verified live, same caveat as 0.7.1-0.7.4.
+
+# 0.7.6: server-created objects missed by dirty sets (issue #3)
+
+Same game build as 0.7.5 (1.0.16, 25527701). Not a port: a bug fix.
+
+| | |
+|---|---|
+| Report | [#3](https://github.com/Akoozie/ValheimTune/issues/3): with ServersideQoL PrefabConfigurator, recreated building pieces invisible 15-20 s (vanilla: <0.3 s) |
+| Cause | `ZDOMan.CreateNewZDO` -> `ZDO.Initialize`, `Deserialize`, `SetOwnerInternal` write fields directly, so neither revision setter fires and the new ZDO never enters `Pending`. It shipped only at the next `ReconcileSeconds` full scan (0-30 s, mean 15 s) |
+| Fix | postfix on private `ZDOMan.CreateNewZDO(ZDOID, Vector3, int)`, the one overload every creation path uses (`ZNetView.Awake`, the public overload, `RPC_ZDOData`); counted as an owner mark so the watchdog is untouched |
+| Review | Opus: no blocking findings. Target resolves uniquely by reflection on the 1.0.16 assembly, 56 B IL (not inlinable). Noted: `marks` stat now includes creations (in CHANGELOG) |
+| Tests | 47/47 |
+
+| Where | What |
+|---|---|
+| GitHub release | [v0.7.6](https://github.com/Akoozie/ValheimTune/releases/tag/v0.7.6). `ValheimTune.dll` sha256 `f06fd832...` 46,080 B; `ValheimTune-0.7.6.zip` sha256 `61a23068...` 36,075 B |
+| Tag | `v0.7.6-b25527701` in the analysis repo |
+| Thunderstore | pending manual upload |
+
+Not verified live.

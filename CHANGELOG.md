@@ -1,12 +1,38 @@
 # Changelog
 
-0.7.5 targets dedicated-server build 25527701 (game 1.0.16, network version
-40) and remains valid for 1.0.15, 1.0.14, 1.0.12 and 1.0.7. 0.7.4 targets
+0.7.6 targets dedicated-server build 25527701 (game 1.0.16, network version
+40), the same build as 0.7.5, and remains valid for 1.0.15, 1.0.14, 1.0.12 and
+1.0.7. 0.7.4 targets
 build 25390671 (game 1.0.15, network version 40). 0.7.3 targets build
 25364309 (game 1.0.14, network version 40). 0.7.1 targets build 25253791 (game
 1.0.12, network version 40). 0.7.0 targets build 25185644 (game 1.0.7, network
 version 39). 0.6.0 and earlier target build 21981590 (game 0.221.12, network
 version 36).
+
+## 0.7.6 - 2026-09-30
+
+Bug fix. No config change, no new setting.
+
+**Why you want it:** with dirty sets on (the default), an object the *server*
+creates never reached players until the next safety-net full scan, up to
+`ReconcileSeconds` (30 s) later. Server-side mods that recreate objects hit
+this every time: ServersideQoL PrefabConfigurator destroys and recreates
+building pieces to apply its changes, and with 0.7.5 each piece vanished for
+15-20 s instead of a fraction of a second
+([#3](https://github.com/Akoozie/ValheimTune/issues/3)).
+
+**Cause:** dirty sets learn about changes from the `DataRevision` /
+`OwnerRevision` setters. A ZDO built with `ZDOMan.CreateNewZDO` and filled with
+`Deserialize` or `SetOwnerInternal` touches neither. Objects players place were
+never affected - they arrive through `RPC_ZDOData`, which sets the revision.
+
+**Fix:** a postfix on `ZDOMan.CreateNewZDO` marks every new object for every
+player. All creation paths go through that one method. The log now reads
+`12 methods patched`, and the stats line's `marks` count now includes object
+creations, so it runs higher during building or zone generation. Workaround on
+0.7.5: `[Sync] DirtySets = false`.
+
+**Not verified live.** Unit tests pass (47/47); nobody has booted 0.7.6.
 
 ## 0.7.5 - 2026-09-25
 
