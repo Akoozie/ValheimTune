@@ -762,6 +762,6 @@ Same game build as 0.7.5/0.7.6 (1.0.16, 25527701). Findings and evidence: `docs/
 |---|---|
 | GitHub release | [v0.7.7](https://github.com/Akoozie/ValheimTune/releases/tag/v0.7.7). `ValheimTune.dll` sha256 `dff5a507...` 55,808 B; `ValheimTune-0.7.7.zip` sha256 `9540f895...` 40,968 B |
 | Tag | `v0.7.7-b25527701` in the analysis repo |
-| Thunderstore | pending manual upload |
+| Thunderstore | `Akoozie-ValheimTune` 0.7.7, uploaded by Akash 2026-09-30 19:55:56Z. Downloaded back: the package is byte-identical to the GitHub zip (`9540f895...`) and the DLL inside hashes to `dff5a507...` |
 
 Not verified live.
