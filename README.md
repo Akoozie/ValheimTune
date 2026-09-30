@@ -1,13 +1,14 @@
 # ValheimTune
 
 > ### ✅ Valheim 1.0.16 ready
-> **0.7.7 runs on game 1.0.16 (network version 40)**, and still on 1.0.15,
-> 1.0.14 and 1.0.12 (40) and 1.0.7 (39). It fixes three vanilla bugs any 1.0
+> **0.7.8 runs on game 1.0.16 (network version 40)**, and still on 1.0.15,
+> 1.0.14 and 1.0.12 (40) and 1.0.7 (39). 0.7.8 is 0.7.7 with working links on
+> Thunderstore; 0.7.7 fixes three vanilla bugs any 1.0
 > server has — player edits skipped by the incremental save, spawners duplicating
 > creatures after a restart, and a 100 ms server freeze on every disconnect — plus
 > two sync gaps found in review. It has **not** been booted on 1.0.16 — read the
 > [CHANGELOG](https://github.com/Akoozie/ValheimTune/blob/main/CHANGELOG.md) before you deploy it.
-> Upgrading from [0.7.6](https://github.com/Akoozie/ValheimTune/releases/tag/v0.7.6) needs no config edit.
+> Upgrading from [0.7.6 or 0.7.7](https://github.com/Akoozie/ValheimTune/releases) needs no config edit.
 > Running game 0.221.12? Use [0.6.0](https://github.com/Akoozie/ValheimTune/releases/tag/v0.6.0) instead — the
 > version gate will refuse to apply these patches to an older build.
 >
@@ -22,7 +23,7 @@ the wire format is untouched, and vanilla clients connect exactly as before.
 ```
 game     1.0.16, 1.0.15, 1.0.14 and 1.0.12 (network version 40), 1.0.7 (39), dedicated server only
 needs    BepInEx 5.4.x
-status   0.7.7 adds vanilla bug fixes on top of the 1.0.16 rebuild. Every method this
+status   0.7.8 (= 0.7.7 code) adds vanilla bug fixes on top of the 1.0.16 rebuild. Every method this
          plugin patches is byte-identical across 1.0.7 to 1.0.16
          (decompile diff), it compiles against the 1.0.16 assemblies and
          its unit tests pass - but it has NOT been booted on 1.0.16. 0.7.0
@@ -69,7 +70,7 @@ steps below are the normal route.
 4. Check the log for:
 
 ```
-[ValheimTune] 0.7.7 loaded on game 1.0.16 (net 40), 18 methods patched, replacements on
+[ValheimTune] 0.7.8 loaded on game 1.0.16 (net 40), 18 methods patched, replacements on
 [ValheimTune] SendZDOs window 10240/2048, 3 constants replaced (expected 3)
 ```
 

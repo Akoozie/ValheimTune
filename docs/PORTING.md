@@ -765,3 +765,13 @@ Same game build as 0.7.5/0.7.6 (1.0.16, 25527701). Findings and evidence: `docs/
 | Thunderstore | `Akoozie-ValheimTune` 0.7.7, uploaded by Akash 2026-09-30 19:55:56Z. Downloaded back: the package is byte-identical to the GitHub zip (`9540f895...`) and the DLL inside hashes to `dff5a507...` |
 
 Not verified live.
+
+# 0.7.8: README links (issue #4)
+
+Documentation-only release; code identical to 0.7.7 apart from the version string. Relative README links (`CHANGELOG.md`, `docs/PORTING.md`, `../../releases/...`) broke on Thunderstore and in mod managers; they are absolute now, `check-docs.sh` rejects a relative link, and the package carries `CHANGELOG.md` for Thunderstore's Changelog tab. 53/53 tests.
+
+| Where | What |
+|---|---|
+| GitHub release | [v0.7.8](https://github.com/Akoozie/ValheimTune/releases/tag/v0.7.8). `ValheimTune.dll` sha256 `8043cd81...` 55,808 B; `ValheimTune-0.7.8.zip` sha256 `cea2368c...` 48,859 B |
+| Tag | `v0.7.8-b25527701` in the analysis repo |
+| Thunderstore | pending manual upload |

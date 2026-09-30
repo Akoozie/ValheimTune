@@ -1,13 +1,24 @@
 # Changelog
 
-0.7.7 targets dedicated-server build 25527701 (game 1.0.16, network version
-40), the same build as 0.7.5 and 0.7.6, and remains valid for 1.0.15, 1.0.14, 1.0.12 and
+0.7.8 targets dedicated-server build 25527701 (game 1.0.16, network version
+40), the same build as 0.7.5 to 0.7.7, and remains valid for 1.0.15, 1.0.14, 1.0.12 and
 1.0.7. 0.7.4 targets
 build 25390671 (game 1.0.15, network version 40). 0.7.3 targets build
 25364309 (game 1.0.14, network version 40). 0.7.1 targets build 25253791 (game
 1.0.12, network version 40). 0.7.0 targets build 25185644 (game 1.0.7, network
 version 39). 0.6.0 and earlier target build 21981590 (game 0.221.12, network
 version 36).
+
+## 0.7.8 - 2026-10-01
+
+Documentation only; the plugin code is identical to 0.7.7.
+
+- The README's links to the changelog, the porting notes and older releases
+  were relative, so on Thunderstore and in mod managers they pointed nowhere
+  ([#4](https://github.com/Akoozie/ValheimTune/issues/4)). They are absolute
+  now, and the docs check rejects a relative link.
+- The Thunderstore package now includes this changelog, shown on its
+  Changelog tab.
 
 ## 0.7.7 - 2026-09-30
 
