@@ -744,3 +744,24 @@ Same game build as 0.7.5 (1.0.16, 25527701). Not a port: a bug fix.
 | Thunderstore | `Akoozie-ValheimTune` 0.7.6, uploaded by Akash 2026-09-30 18:52:35Z. Downloaded back: the package is byte-identical to the GitHub zip (`61a23068...`) and the DLL inside hashes to `f06fd832...` |
 
 Not verified live.
+
+# 0.7.7: audit fixes (review + first read of the unread server code)
+
+Same game build as 0.7.5/0.7.6 (1.0.16, 25527701). Findings and evidence: `docs/AUDIT-2026-09-30.md` in the analysis repo.
+
+| | |
+|---|---|
+| Plugin fixes | R1 distant objects captured on full scans; R2 simulation-distance change forces a full scan; C1 `SendWindowBytes` max 262144; C2 headroom >= window leaves `SendZDOs` vanilla; X3 asset-unload toggle clears its held timestamp |
+| Vanilla fixes (`[Fixes]`, default on) | S1 `SaveDirtyFix` (`ZDO.Deserialize` postfix marks the save chunk); S2 `SpawnerLinkFix` (`GetSaveClonePerChunk` postfix, closure over split links, skipped when a save starts mid-save); G1 `DeadZdoPrune`; N1 `DisconnectNoSleep` (transpiler on `ZSteamSocket.Close`: sleep -> nop, linger on; matched against the real 1.0.16 IL); G2 `GlobalKeyDedupe` |
+| Measurement | `release max`, `removePeer max`, `gc`/`heap`, `dead`, `saveMarks`, `linkFixes`, `keyDedupes` |
+| Methods patched | 18 |
+| Review | Opus: nothing blocking. Applied: S2 guard for a save started before the previous one finalised. Kept as documented: constant swap and send rate are not version-gated |
+| Tests | 53/53 |
+
+| Where | What |
+|---|---|
+| GitHub release | [v0.7.7](https://github.com/Akoozie/ValheimTune/releases/tag/v0.7.7). `ValheimTune.dll` sha256 `dff5a507...` 55,808 B; `ValheimTune-0.7.7.zip` sha256 `9540f895...` 40,968 B |
+| Tag | `v0.7.7-b25527701` in the analysis repo |
+| Thunderstore | pending manual upload |
+
+Not verified live.

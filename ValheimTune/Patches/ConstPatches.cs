@@ -21,6 +21,11 @@ namespace ValheimTune.Patches
                 Plugin.Log.LogInfo($"[ValheimTune] SendZDOs window left vanilla ({(on ? "values are vanilla" : "OverrideSendWindow = false")})");
                 return original;
             }
+            if (Cfg.MinHeadroomBytes.Value >= Cfg.SendWindowBytes.Value)
+            {
+                Plugin.Log.LogError($"[ValheimTune] MinHeadroomBytes ({Cfg.MinHeadroomBytes.Value}) >= SendWindowBytes ({Cfg.SendWindowBytes.Value}): no ZDO would ever be sent; leaving SendZDOs vanilla");
+                return original;
+            }
             var map = new Dictionary<int, int>
             {
                 { 10240, Cfg.SendWindowBytes.Value },

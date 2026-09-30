@@ -7,6 +7,7 @@ namespace ValheimTune
     public sealed class DirtyPeerState<TId>
     {
         private (int x, int y) _lastZone = (int.MinValue, int.MinValue);
+        private int _lastSimKey;
         private float _lastFullScan = float.NegativeInfinity;
         private bool _wasActive;
         private readonly List<TId> _prune = new List<TId>();
@@ -17,13 +18,15 @@ namespace ValheimTune
         // active reflects whether DirtySets was actually in effect (not disabled by the watchdog)
         // on this call. Coming back from an inactive round always forces a full scan, since Pending
         // was not being fed while inactive and may be stale.
-        public bool NeedsFullScan((int x, int y) zone, float now, float reconcileSeconds, bool active)
+        // simKey encodes the peer's simulation distance: it can change without a zone change.
+        public bool NeedsFullScan((int x, int y) zone, float now, float reconcileSeconds, bool active, int simKey)
         {
-            bool full = !_wasActive || zone != _lastZone || now - _lastFullScan > reconcileSeconds;
+            bool full = !_wasActive || zone != _lastZone || simKey != _lastSimKey || now - _lastFullScan > reconcileSeconds;
             _wasActive = active;
             if (full)
             {
                 _lastZone = zone;
+                _lastSimKey = simKey;
                 _lastFullScan = now;
                 FullScans++;
             }

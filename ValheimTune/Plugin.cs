@@ -10,7 +10,7 @@ namespace ValheimTune
     public class Plugin : BaseUnityPlugin
     {
         public const string Guid = "akoozie.valheimtune";
-        public const string Version = "0.7.6";
+        public const string Version = "0.7.7";
         private const float WatchdogWindowSeconds = 10f;
         public static ManualLogSource Log;
         public static Plugin Instance;
@@ -24,8 +24,6 @@ namespace ValheimTune
             Instance = this;
             Log = Logger;
             Cfg.Bind(Config);
-            if (Cfg.MinHeadroomBytes.Value >= Cfg.SendWindowBytes.Value)
-                Log.LogError("[ValheimTune] MinHeadroomBytes >= SendWindowBytes: no ZDO will ever be sent. Fix the config.");
             Compat.GameVersion = global::Version.CurrentVersion.ToString();      // "1.0.7"; GetVersionString may carry a platform prefix
             Compat.ReplacementsAllowed = !Cfg.DisableOnUnknownBuild.Value || Compat.IsKnownOrShipped(Compat.GameVersion, Cfg.KnownGoodBuilds.Value);
             if (Compat.ReplacementsAllowed && !Compat.IsKnown(Compat.GameVersion, Cfg.KnownGoodBuilds.Value))
@@ -85,7 +83,9 @@ namespace ValheimTune
                 $"send avg {MeasurePatches.SendMs.Avg:F2} ms | Z max {MeasurePatches.MaxZ} | peer-sends {MeasurePatches.Rounds} | " +
                 $"zdos/s sent {sent} recv {recv} | peers {peers}" +
                 $" | marks {Patches.DirtyPatches.Marks} full {Patches.DirtyPatches.FullScans} dirtyRounds {Patches.DirtyPatches.DirtyRounds} deferred {Patches.DirtyPatches.Deferred} drained {Patches.DirtyPatches.LastDrained}{(Patches.DirtyPatches.Disabled ? " DISABLED" : "")}" +
-                $" | meshSkips {Patches.RenderMeshPatch.Skipped}");
+                $" | meshSkips {Patches.RenderMeshPatch.Skipped}" +
+                $" | release max {MeasurePatches.ReleaseMaxMs:F1} removePeer max {MeasurePatches.RemovePeerMaxMs:F1} ms | gc {MeasurePatches.GcDelta} heap {MeasurePatches.HeapMb} MB | dead {(zdoMan == null ? 0 : zdoMan.m_deadZDOs.Count)}" +
+                $" | saveMarks {SavePatches.SaveMarks} linkFixes {SavePatches.LinkFixes} keyDedupes {NetPatches.KeyDedupes}");
             if (MeasurePatches.Recv.Total > 0)
             {
                 var sb = new System.Text.StringBuilder("[ValheimTune] recv by prefab (");

@@ -140,7 +140,12 @@ namespace ValheimTune.Patches
             var st = StateFor(peer);
             // Called every round regardless of Active so a peer's state always knows whether the
             // previous round was active; that is what forces a full scan on reactivation below.
-            bool needsFull = st.NeedsFullScan((zone.x, zone.y), Time.time, Cfg.ReconcileSeconds.Value, active);
+            // 1.0 removed ZoneSystem.m_activeArea/m_activeDistantArea; the radius is now a
+            // per-peer SimulationDistance negotiated in ZNet.RPC_RequestValidSimulationDistance,
+            // which can change without a zone change, so it is part of the full-scan key.
+            SimulationDistance sd = peer.m_peer.m_simulationDistance;
+            int simKey = sd.NearSimulationDistance * 4096 + sd.TotalSimulationDistance * 2 + (sd.IsClassic ? 1 : 0);
+            bool needsFull = st.NeedsFullScan((zone.x, zone.y), Time.time, Cfg.ReconcileSeconds.Value, active, simKey);
             if (!active) return true;
 
             if (needsFull)
@@ -151,9 +156,6 @@ namespace ValheimTune.Patches
             }
 
             DirtyRounds++;
-            // 1.0 removed ZoneSystem.m_activeArea/m_activeDistantArea; the radius is now a
-            // per-peer SimulationDistance negotiated in ZNet.RPC_RequestValidSimulationDistance.
-            SimulationDistance sd = peer.m_peer.m_simulationDistance;
             s_relayMinMs = Cfg.RelayMinIntervalMs.Value;
             s_ids.Clear();
             st.Drain(s_ids,
@@ -192,11 +194,16 @@ namespace ValheimTune.Patches
 
         [HarmonyPatch(typeof(ZDOMan), nameof(ZDOMan.CreateSyncList))]
         [HarmonyPostfix]
-        private static void CreateSyncListPostfix(ZDOMan.ZDOPeer peer, List<ZDO> toSync, bool __state)
+        private static void CreateSyncListPostfix(ZDOMan __instance, ZDOMan.ZDOPeer peer, List<ZDO> toSync, bool __state)
         {
             if (!__state) return;
             var st = StateFor(peer);
             for (int i = 0; i < toSync.Count; i++) st.Pending.Add(toSync[i].m_uid);
+            // Vanilla fills m_tempToSyncDistant every round but appends it to toSync only when
+            // toSync.Count < 10 (ZDOMan.cs:1261-1289); without this the distant objects are lost.
+            var distant = __instance.m_tempToSyncDistant;
+            for (int i = 0; i < distant.Count; i++)
+                if (peer.ShouldSend(distant[i])) st.Pending.Add(distant[i].m_uid);
         }
 
         // R2 relay throttle: a non-prioritized object (fish, drifting items, pieces) that was already

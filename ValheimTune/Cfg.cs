@@ -26,11 +26,13 @@ namespace ValheimTune
         public static ConfigEntry<bool> DeferAssetUnload;
         public static ConfigEntry<int> AssetUnloadMaxDeferMinutes;
 
+        public static ConfigEntry<bool> SaveDirtyFix, SpawnerLinkFix, DeadZdoPrune, DisconnectNoSleep, GlobalKeyDedupe;
+
         public static void Bind(ConfigFile c)
         {
             LogIntervalSeconds = c.Bind("Measure", "LogIntervalSeconds", 10, "How often to print the stats line. 0 disables.");
             ConfigReloadSeconds = c.Bind("Measure", "ConfigReloadSeconds", 5, "Re-read the cfg file this often so knobs that are read at runtime change without a restart. 0 disables. Patch-time settings (SendZDOs window, Steam send rate) still need a restart.");
-            SendWindowBytes  = c.Bind("Sync", "SendWindowBytes", 10240, new ConfigDescription("Per-peer bytes in flight before the server stops queueing ZDO data. Vanilla 10240. Try 32768. Also sizes each iteration of the disconnect flush.", new AcceptableValueRange<int>(4096, 1048576)));
+            SendWindowBytes  = c.Bind("Sync", "SendWindowBytes", 10240, new ConfigDescription("Per-peer bytes in flight before the server stops queueing ZDO data. Vanilla 10240. Try 32768. Also sizes each iteration of the disconnect flush. Max 262144: one ZDO package can grow to the window size, and Steam rejects messages over 512 KB, which stalls the player's connection until it times out.", new AcceptableValueRange<int>(4096, 262144)));
             MinHeadroomBytes = c.Bind("Sync", "MinHeadroomBytes", 2048, new ConfigDescription("Below this much free window the peer is skipped this round. Vanilla 2048. Scale with the window; must stay below SendWindowBytes.", new AcceptableValueRange<int>(256, 262144)));
             AllPeersPerRound = c.Bind("Sync", "AllPeersPerRound", false, "Serve every peer each round instead of one peer per frame. Turn on after B1 is verified with several players; otherwise it concentrates the scan cost into one frame (6 peers x 4.1 ms full scans per 0.05 s if the DirtySets watchdog ever disables dirty sets).");
             RoundSeconds     = c.Bind("Sync", "RoundSeconds", 0.05f, new ConfigDescription("Round period when AllPeersPerRound is on. Vanilla 0.05.", new AcceptableValueRange<float>(0.01f, 1f)));
@@ -52,6 +54,11 @@ namespace ValheimTune
             ServerSkipRenderMesh = c.Bind("Server", "SkipRenderMesh", false, "B4a: skip Heightmap.RebuildRenderMesh on a dedicated server. The render mesh is rebuilt for every ghost zone a player explores and every terrain edit that loads with one, and never drawn on a -nographics process. Collision mesh untouched. Watch meshSkips on the stats line.");
             DeferAssetUnload = c.Bind("Server", "DeferAssetUnload", false, "G1: hold the hourly Resources.UnloadUnusedAssets() until no players are connected. Vanilla runs it every hour regardless (Game.cs:239); measured 443-607 ms of main-thread stall on a 698k-ZDO world, landing with players online. Deferred, not skipped: it still runs the moment the server empties, or after AssetUnloadMaxDeferMinutes whichever comes first.");
             AssetUnloadMaxDeferMinutes = c.Bind("Server", "AssetUnloadMaxDeferMinutes", 240, new ConfigDescription("Backstop for DeferAssetUnload: run the collection even with players online once it has been held this long. Stops a server that never empties from never collecting.", new AcceptableValueRange<int>(10, 1440)));
+            SaveDirtyFix = c.Bind("Fixes", "SaveDirtyFix", true, "S1: mark a save chunk dirty when a client update arrives. Vanilla only marks chunks for changes the server makes itself, so an area only players touched since the last save can be skipped by the incremental save and revert on restart.");
+            SpawnerLinkFix = c.Bind("Fixes", "SpawnerLinkFix", true, "S2: before a save, also save the other side of any spawner/creature link that is about to be written. Vanilla gives links new hashes every save, so a link split across a saved and an unsaved chunk breaks on restart and the spawner spawns a duplicate.");
+            DeadZdoPrune = c.Bind("Fixes", "DeadZdoPrune", true, "G1: at each save, forget destroyed-object records older than one hour. Vanilla keeps one per destroyed object until restart; they are only needed for seconds.");
+            DisconnectNoSleep = c.Bind("Fixes", "DisconnectNoSleep", true, "N1: remove vanilla's 100 ms main-thread sleep in ZSteamSocket.Close (every disconnect and every rejected join freezes the server for 100 ms) and close with Steam's linger instead, so queued messages still go out. Restart to apply.");
+            GlobalKeyDedupe = c.Bind("Fixes", "GlobalKeyDedupe", true, "G2: ignore a SetGlobalKey for a key that is already set to the same value. Vanilla compares case-sensitively against lowercased keys, so e.g. every unshielded ship in the Ashlands ocean re-broadcasts all global keys to every player every 10 s.");
             TopK     = c.Bind("Sync", "TopK", 0, new ConfigDescription("How many candidates to order per round. 0 = SendWindowBytes / 64 (512 at 32 KB), never below 64.", new AcceptableValueRange<int>(0, 8192)));
         }
     }
