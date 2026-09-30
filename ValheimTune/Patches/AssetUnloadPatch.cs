@@ -18,7 +18,7 @@ namespace ValheimTune.Patches
         [HarmonyPrefix]
         private static bool Prefix()
         {
-            if (!Compat.ReplacementsAllowed || !Cfg.DeferAssetUnload.Value) return true;
+            if (!Compat.ReplacementsAllowed || !Cfg.DeferAssetUnload.Value) { s_deferredSince = -1f; return true; }
             if (ZNet.instance == null || !ZNet.instance.IsDedicated()) return true;
 
             int peers = ZNet.instance.GetPeerConnections();
@@ -48,7 +48,8 @@ namespace ValheimTune.Patches
         // ourselves once the condition that made us defer has cleared.
         public static void RunIfDue()
         {
-            if (!Pending || !Cfg.DeferAssetUnload.Value) return;
+            if (!Cfg.DeferAssetUnload.Value) { s_deferredSince = -1f; return; }
+            if (!Pending) return;
             var znet = ZNet.instance;
             if (znet == null) return;
             double heldFor = Time.realtimeSinceStartup - s_deferredSince;

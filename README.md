@@ -1,12 +1,13 @@
 # ValheimTune
 
 > ### ✅ Valheim 1.0.16 ready
-> **0.7.6 runs on game 1.0.16 (network version 40)**, and still on 1.0.15,
-> 1.0.14 and 1.0.12 (40) and 1.0.7 (39). It fixes building pieces going
-> invisible for up to 30 s when a server-side mod (ServersideQoL
-> PrefabConfigurator) recreates them. It has **not** been booted on 1.0.16 —
-> read the [CHANGELOG](CHANGELOG.md) before you deploy it.
-> Upgrading from [0.7.5](../../releases/tag/v0.7.5) needs no config edit.
+> **0.7.7 runs on game 1.0.16 (network version 40)**, and still on 1.0.15,
+> 1.0.14 and 1.0.12 (40) and 1.0.7 (39). It fixes three vanilla bugs any 1.0
+> server has — player edits skipped by the incremental save, spawners duplicating
+> creatures after a restart, and a 100 ms server freeze on every disconnect — plus
+> two sync gaps found in review. It has **not** been booted on 1.0.16 — read the
+> [CHANGELOG](CHANGELOG.md) before you deploy it.
+> Upgrading from [0.7.6](../../releases/tag/v0.7.6) needs no config edit.
 > Running game 0.221.12? Use [0.6.0](../../releases/tag/v0.6.0) instead — the
 > version gate will refuse to apply these patches to an older build.
 >
@@ -21,7 +22,7 @@ the wire format is untouched, and vanilla clients connect exactly as before.
 ```
 game     1.0.16, 1.0.15, 1.0.14 and 1.0.12 (network version 40), 1.0.7 (39), dedicated server only
 needs    BepInEx 5.4.x
-status   0.7.6 is a bug fix on top of the 1.0.16 rebuild. Every method this
+status   0.7.7 adds vanilla bug fixes on top of the 1.0.16 rebuild. Every method this
          plugin patches is byte-identical across 1.0.7 to 1.0.16
          (decompile diff), it compiles against the 1.0.16 assemblies and
          its unit tests pass - but it has NOT been booted on 1.0.16. 0.7.0
@@ -68,7 +69,7 @@ steps below are the normal route.
 4. Check the log for:
 
 ```
-[ValheimTune] 0.7.6 loaded on game 1.0.16 (net 40), 12 methods patched, replacements on
+[ValheimTune] 0.7.7 loaded on game 1.0.16 (net 40), 18 methods patched, replacements on
 [ValheimTune] SendZDOs window 10240/2048, 3 constants replaced (expected 3)
 ```
 
@@ -163,9 +164,14 @@ Every `LogIntervalSeconds`, prefixed `[ValheimTune]`:
 frame avg 16.7 max 17.0 ms (60 fps) | syncList avg 0.07 max 0.20 ms | send avg 0.10 ms
 | Z max 11418 | peer-sends 400 | zdos/s sent 430 recv 1000 | peers 2
 | marks 15750 full 0 dirtyRounds 399 deferred 8300 drained 12 | meshSkips 0
+| release max 1.2 removePeer max 14.0 ms | gc 3 heap 412 MB | dead 5210
+| saveMarks 880 linkFixes 0 keyDedupes 6
 recv by prefab (7848 in window): Fish1=1833 Fish2=1315 ...
 hot objects: Wood=69@(-327,-631) ...
 ```
+
+The `release`/`gc`/`dead`/`saveMarks` line is new in 0.7.7 and its numbers above
+only illustrate the format; it has not run on a live server yet.
 
 <details>
 <summary><b>What each field means</b></summary>
@@ -183,6 +189,12 @@ hot objects: Wood=69@(-327,-631) ...
 | drained | candidates from the last dirty round | |
 | meshSkips | render-mesh rebuilds skipped by `SkipRenderMesh` | climbs while players explore new ground, 0 elsewhere |
 | DISABLED | appended if the watchdog tripped | should never appear |
+| release max / removePeer max | slowest ownership hand-off pass and slowest disconnect cleanup in the window | measurement for the next release; tell us if either passes ~30 ms |
+| gc / heap | garbage collections in the window, managed heap size | |
+| dead | destroyed-object records held (pruned to 1 h at each save) | |
+| saveMarks | client updates whose save chunk `SaveDirtyFix` marked | non-zero with players building or moving things |
+| linkFixes | spawner links saved on both sides by `SpawnerLinkFix` | usually 0 |
+| keyDedupes | repeat global-key sets dropped by `GlobalKeyDedupe` | ~6/min per ship in the Ashlands ocean |
 | recv by prefab | which prefabs your players are pushing | tells you what to clean up |
 | hot objects | per-object counts with world x,z | find the log that never stops rolling |
 
@@ -203,8 +215,8 @@ hot objects: Wood=69@(-327,-631) ...
 | `[Server] AssetUnloadMaxDeferMinutes` | 240 | runtime | Backstop: collect anyway once a deferral has been held this long, so a server that never empties still collects. |
 | `[Server] SkipRenderMesh` | false | runtime | Skip the heightmap render-mesh rebuild on a dedicated server; it is built for every zone a player explores and never drawn. Collision mesh untouched. |
 | `[Server] TargetFrameRate` | 0 | runtime | Override the server's hard-coded 30 fps. 0 = leave it. Sync round period is `0.05 s + players / fps`. |
-| `[Sync] SendWindowBytes` | 10240 | patch-time | Bytes in flight per player before the server stops queueing. Vanilla 10240. |
-| `[Sync] MinHeadroomBytes` | 2048 | patch-time | Below this much free window the player is skipped this round. Keep below the window. |
+| `[Sync] SendWindowBytes` | 10240 | patch-time | Bytes in flight per player before the server stops queueing. Vanilla 10240, max 262144 (Steam rejects messages over 512 KB). |
+| `[Sync] MinHeadroomBytes` | 2048 | patch-time | Below this much free window the player is skipped this round. Must be below the window, or `SendZDOs` is left vanilla. |
 | `[Sync] OverrideSendWindow` | true | patch-time | Set false if another networking mod changes the send queue size; `SendZDOs` is then left untouched. At vanilla window values nothing is changed either way. |
 | `[Sync] AllPeersPerRound` | false | runtime | Serve every player each round instead of one per frame. Pays off at 4+ players. |
 | `[Sync] RoundSeconds` | 0.05 | runtime | Round period when `AllPeersPerRound` is on. |
@@ -217,6 +229,11 @@ hot objects: Wood=69@(-327,-631) ...
 | `[Steam] SendRateMinBytesPerSec` | 153600 | patch-time | Leave at vanilla so Steam's estimator can back off on a lossy link. |
 | `[Steam] OverrideSendRate` | true | patch-time | Set false if another networking mod manages Steam send rates; ValheimTune then never writes them. A rate left at vanilla is never written either way. |
 | `[Receive] MaxPacketsPerPeerPerFrame` | 0 | runtime | Stop draining one player's socket after this many packets in a frame. 0 = vanilla. Try 64 if one player's burst ever stalls the rest. |
+| `[Fixes] SaveDirtyFix` | **true** | runtime | Mark a save chunk dirty when a client update arrives. Vanilla only marks chunks for changes the server makes itself, so an area only players touched since the last save can be skipped and revert on restart. |
+| `[Fixes] SpawnerLinkFix` | **true** | runtime | Save both sides of a spawner/creature link together. Vanilla re-hashes links every save, so a link split across a saved and an unsaved chunk breaks and the spawner spawns a duplicate after a restart. |
+| `[Fixes] DeadZdoPrune` | **true** | runtime | Forget destroyed-object records older than an hour at each save; vanilla keeps one per destroyed object until restart. |
+| `[Fixes] DisconnectNoSleep` | **true** | patch-time | Remove vanilla's 100 ms main-thread sleep on every disconnect and rejected join; close with Steam's linger so queued messages still go out. |
+| `[Fixes] GlobalKeyDedupe` | **true** | runtime | Ignore a global-key set that changes nothing (vanilla re-broadcasts every key to every player, e.g. every 10 s per ship in the Ashlands ocean). |
 | `[Cleanup] FloatingDropsRun` | false | one-shot | Set true to scan for item drops and felled logs floating in water. Resets itself. Dry run unless the next key is true. ~50 ms main-thread stall on a 698k-ZDO world. |
 | `[Cleanup] FloatingDropsDelete` | false | runtime | With `Run`: delete what the scan finds. Hourly backups first. |
 | `[Compat] KnownGoodBuilds` | 1.0.7, 1.0.12, 1.0.14, 1.0.15, 1.0.16 | patch-time | Game versions this plugin build was verified against. Comma-separated. |
@@ -240,14 +257,17 @@ Each row is one measured problem and the patch that answers it.
 | Autosave clones the whole world on the main thread, then a writer thread reads memory the game keeps changing (a torn-save race) | **Sliced save**: the world is serialised on the main thread in 6 ms slices into a buffer; the writer thread only writes | 381 ms freeze in one frame -> 6 ms slices over ~350 frames |
 | During a join, every candidate object is fully sorted each round to pick the ~300 that fit | **Top-K selection**: a bounded heap keeps the best 512, no allocation | Join sync cost ~11 -> ~5.5 ms per call; closes a vanilla field-table leak on the way |
 | A game update silently runs old patch logic on new code | **Version gate**: replacement patches only run on a build listed in the config; anything else logs a warning and runs vanilla plus measurement | Tested both ways on the live server |
+| Incremental saves only write chunks the *server* changed; builds, chests and signs players changed can be skipped and revert on restart | **Save-dirty fix**: a client update marks its chunk | not measured live |
+| Spawner/creature links get new hashes every save; a link split across two chunks breaks after a restart and the spawner spawns a duplicate | **Spawner-link fix**: both sides are saved together | not measured live |
+| Every disconnect or rejected join sleeps the main thread for 100 ms | **No disconnect sleep**; Steam's linger flushes instead | 100 ms -> 0 per disconnect |
 | Hundreds of item drops and felled logs floating in water forever, each one a sync every round | One-shot scan and optional delete | 1,446 objects removed; idle inbound traffic 800 -> ~650 updates/s |
 
 </details>
 
 <details>
-<summary><b>The 12 patched methods</b></summary>
+<summary><b>The 18 patched methods</b></summary>
 
-Harmony patches on 12 methods of the dedicated-server assembly, all in
+Harmony patches on 18 methods of the dedicated-server assembly, all in
 `Patches/`:
 
 | Method | Patch | Purpose |
@@ -255,12 +275,17 @@ Harmony patches on 12 methods of the dedicated-server assembly, all in
 | `ZDOMan.CreateSyncList` | prefix + postfix | Dirty sets, relay throttle; timing |
 | `ZDO.DataRevision` / `OwnerRevision` setters | postfix | Mark changed objects |
 | `ZDOMan.CreateNewZDO` | postfix | Mark objects the server creates itself |
+| `ZDOMan.GetSaveClonePerChunk` | postfix | Save both sides of a spawner link |
+| `ZDOMan.PrepareSave` | postfix | Prune destroyed-object records |
+| `ZDOMan.RemovePeer` / `ReleaseZDOS` | prefix + postfix | Timing |
+| `ZSteamSocket.Close` | transpiler | Remove the 100 ms disconnect sleep |
+| `ZoneSystem.RPC_SetGlobalKey` | prefix | Drop repeat global-key sets |
 | `ZDOMan.ServerSortSendZDOS` | prefix | Top-K selection |
 | `ZDOMan.SendZDOs` | transpiler + prefix/postfix | Window constants; timing |
 | `ZDOMan.SendZDOToPeers2` | prefix | All players per round |
 | `ZRpc.Update` | prefix | Receive cap |
 | `ZSteamSocket.RegisterGlobalCallbacks` | postfix | Steam send rate |
-| `ZDO.Deserialize` | postfix | Per-prefab tally |
+| `ZDO.Deserialize` | postfix | Per-prefab tally; mark the save chunk of a client update |
 | `Heightmap.RebuildRenderMesh` | prefix | Skip the render mesh on a headless server |
 | `Game.CollectResources` | prefix | Defer the hourly asset unload until the server is empty |
 

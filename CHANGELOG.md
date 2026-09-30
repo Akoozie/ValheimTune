@@ -1,13 +1,70 @@
 # Changelog
 
-0.7.6 targets dedicated-server build 25527701 (game 1.0.16, network version
-40), the same build as 0.7.5, and remains valid for 1.0.15, 1.0.14, 1.0.12 and
+0.7.7 targets dedicated-server build 25527701 (game 1.0.16, network version
+40), the same build as 0.7.5 and 0.7.6, and remains valid for 1.0.15, 1.0.14, 1.0.12 and
 1.0.7. 0.7.4 targets
 build 25390671 (game 1.0.15, network version 40). 0.7.3 targets build
 25364309 (game 1.0.14, network version 40). 0.7.1 targets build 25253791 (game
 1.0.12, network version 40). 0.7.0 targets build 25185644 (game 1.0.7, network
 version 39). 0.6.0 and earlier target build 21981590 (game 0.221.12, network
 version 36).
+
+## 0.7.7 - 2026-09-30
+
+Vanilla bug fixes and review fixes. No config edit needed; every new fix is on by
+default and has its own switch under `[Fixes]`. Found by a full review of the
+plugin and a first read of the server code it had never looked at; the complete
+record, including what was checked and found clean, is in the analysis repo's
+`docs/AUDIT-2026-09-30.md`.
+
+**Vanilla bugs fixed (any 1.0 server has these):**
+
+- **Player edits skipped by the incremental save** (`SaveDirtyFix`). Valheim 1.0
+  saves only chunks marked dirty, and only changes the *server* makes mark them.
+  Updates arriving from players - building, chests, signs - never do. An area
+  only players touched since the last save can be skipped, and it reverts on
+  restart while the character keeps the items. It usually hides behind
+  incidental marks (ownership changes, objects crossing zones).
+- **Spawners duplicating creatures after a restart** (`SpawnerLinkFix`). Every
+  save gives spawner/creature links new hashes, but an unsaved chunk keeps the
+  old ones; a link split across two chunks no longer matches at load and the
+  spawner spawns another creature. Both sides are now saved together. The load
+  log line `Removed connection from N orphan spawn:s` shows the vanilla bug; on
+  our own vanilla world it read 0 at every restart for a month, so it is rare.
+- **100 ms server freeze on every disconnect** (`DisconnectNoSleep`, restart to
+  apply). `ZSteamSocket.Close` sleeps the main thread for 100 ms - for every
+  player leaving, timing out or being refused at join. Removed; the connection
+  closes with Steam's linger so queued messages still go out.
+- **Destroyed-object records kept until restart** (`DeadZdoPrune`): pruned to
+  the last hour at each save.
+- **Repeat global-key broadcasts** (`GlobalKeyDedupe`): vanilla compares keys
+  case-sensitively, so e.g. every unshielded ship in the Ashlands ocean
+  re-broadcasts every global key to every player every 10 s.
+
+**Fixed in the plugin:**
+
+- Dirty sets could hold back distant objects (the far ring) until a player came
+  near, whenever a full scan found 10 or more nearby objects to send - most of
+  the time while travelling.
+- Changing Simulation Distance in the graphics settings now triggers a full
+  scan; newly in-range objects no longer wait up to 30 s.
+- `SendWindowBytes` max is now 262144. Above ~450 KB a single package exceeds
+  Steam's 512 KB limit and the player times out. Existing configs above the new
+  max are clamped on load.
+- `MinHeadroomBytes >= SendWindowBytes` now leaves `SendZDOs` vanilla instead of
+  applying a window that sends nothing.
+- Turning `DeferAssetUnload` off while a collection was held no longer causes an
+  immediate unload stall when it is turned back on later.
+
+**New on the stats line:** `release max` / `removePeer max` (ms), `gc` /
+`heap`, `dead`, `saveMarks`, `linkFixes`, `keyDedupes`. The first two measure
+two suspected stalls (the ownership pass every 2 s, and the disconnect cleanup
+that walks every object) before anything is changed there.
+
+The log now reads `18 methods patched`.
+
+**Not verified live.** 53/53 unit tests; the disconnect transpiler was checked
+against the real 1.0.16 IL of `ZSteamSocket.Close`. Nobody has booted 0.7.7.
 
 ## 0.7.6 - 2026-09-30
 

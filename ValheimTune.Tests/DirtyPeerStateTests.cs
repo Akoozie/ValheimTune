@@ -8,8 +8,8 @@ public class DirtyPeerStateTests
     public void FirstRoundIsAFullScan()
     {
         var s = new DirtyPeerState<int>();
-        Assert.True(s.NeedsFullScan((0, 0), now: 100f, reconcileSeconds: 30f, active: true));
-        Assert.False(s.NeedsFullScan((0, 0), now: 101f, reconcileSeconds: 30f, active: true));
+        Assert.True(s.NeedsFullScan((0, 0), now: 100f, reconcileSeconds: 30f, active: true, simKey: 0));
+        Assert.False(s.NeedsFullScan((0, 0), now: 101f, reconcileSeconds: 30f, active: true, simKey: 0));
         Assert.Equal(1, s.FullScans);
     }
 
@@ -17,27 +17,37 @@ public class DirtyPeerStateTests
     public void ZoneChangeForcesFullScan()
     {
         var s = new DirtyPeerState<int>();
-        s.NeedsFullScan((0, 0), 100f, 30f, true);
-        Assert.True(s.NeedsFullScan((1, 0), 101f, 30f, true));
-        Assert.False(s.NeedsFullScan((1, 0), 102f, 30f, true));
+        s.NeedsFullScan((0, 0), 100f, 30f, true, 0);
+        Assert.True(s.NeedsFullScan((1, 0), 101f, 30f, true, 0));
+        Assert.False(s.NeedsFullScan((1, 0), 102f, 30f, true, 0));
+    }
+
+    [Fact]
+    public void SimKeyChangeForcesFullScan()
+    {
+        var s = new DirtyPeerState<int>();
+        s.NeedsFullScan((0, 0), 100f, 30f, true, 5);
+        Assert.False(s.NeedsFullScan((0, 0), 101f, 30f, true, 5));
+        Assert.True(s.NeedsFullScan((0, 0), 102f, 30f, true, 6));
+        Assert.False(s.NeedsFullScan((0, 0), 103f, 30f, true, 6));
     }
 
     [Fact]
     public void ReconcileTimerForcesFullScan()
     {
         var s = new DirtyPeerState<int>();
-        s.NeedsFullScan((0, 0), 100f, 30f, true);
-        Assert.False(s.NeedsFullScan((0, 0), 129f, 30f, true));
-        Assert.True(s.NeedsFullScan((0, 0), 131f, 30f, true));
+        s.NeedsFullScan((0, 0), 100f, 30f, true, 0);
+        Assert.False(s.NeedsFullScan((0, 0), 129f, 30f, true, 0));
+        Assert.True(s.NeedsFullScan((0, 0), 131f, 30f, true, 0));
     }
 
     [Fact]
     public void ReactivationForcesFullScan()
     {
         var s = new DirtyPeerState<int>();
-        Assert.True(s.NeedsFullScan((0, 0), 100f, 30f, true));    // first round: full scan
-        s.NeedsFullScan((0, 0), 105f, 30f, false);                // DirtySets watchdog disabled it: records inactive
-        Assert.True(s.NeedsFullScan((0, 0), 110f, 30f, true));    // reactivated within interval, same zone -> still forced
+        Assert.True(s.NeedsFullScan((0, 0), 100f, 30f, true, 0));    // first round: full scan
+        s.NeedsFullScan((0, 0), 105f, 30f, false, 0);                // DirtySets watchdog disabled it: records inactive
+        Assert.True(s.NeedsFullScan((0, 0), 110f, 30f, true, 0));    // reactivated within interval, same zone -> still forced
     }
 
     [Fact]
