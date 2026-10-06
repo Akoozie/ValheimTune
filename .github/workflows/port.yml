@@ -87,7 +87,8 @@ jobs:
           for t in Version $(python3 -c "import importlib.util as u; s=u.spec_from_file_location('p','ci/patched-methods.py'); m=u.module_from_spec(s); s.loader.exec_module(m); print(' '.join(sorted({t for t,_ in m.targets()})))"); do
             "$RUNNER_TEMP/tools/ilspycmd" -t "$t" -r "$MANAGED" "$MANAGED/assembly_valheim.dll" > "$RUNNER_TEMP/src/$t.cs"
           done
-          python3 ci/patched-methods.py "$RUNNER_TEMP/src" "$RUNNER_TEMP/patched"
+          # a vanished target fails a test run, but a port still goes ahead so the diff shows it
+          python3 ci/patched-methods.py "$RUNNER_TEMP/src" "$RUNNER_TEMP/patched" || [ "$PORT" = true ]
 
       - name: Game version
         id: game
@@ -143,16 +144,25 @@ jobs:
           report="$RUNNER_TEMP/report.md"
           if [ ! -d "$base" ]; then
             verdict="NO BASELINE: the $old methods were not cached, so the patched methods were not diffed. Diff them by hand."
-          elif diff -r "$base" "$RUNNER_TEMP/patched" > "$RUNNER_TEMP/patched-methods.diff"; then
+          elif diff -ru "$base" "$RUNNER_TEMP/patched" > "$RUNNER_TEMP/patched-methods.diff"; then
             verdict="All $(ls "$RUNNER_TEMP/patched" | wc -l) patched methods are identical to $old."
           else
-            changed=$(diff -rq "$base" "$RUNNER_TEMP/patched" | sed -E 's|.*/([^/ ]+)\.cs.*|\1|' | sort -u | tr '\n' ' ')
+            changed=$(diff -rq "$base" "$RUNNER_TEMP/patched" | grep -oE '[A-Za-z_]+\.[A-Za-z_0-9]+\.cs' | sed 's/\.cs$//' | sort -u | tr '\n' ' ')
             verdict="NEEDS REVIEW: patched methods changed since $old: $changed"
+            # unified diff of the changed bodies, for whoever adapts the patches (the daily routine reads this log)
+            echo "::group::patched-method diff $old -> $v"
+            cat "$RUNNER_TEMP/patched-methods.diff"
+            echo "::endgroup::"
           fi
           echo "$verdict"
           ci/port-bump.sh "$v"
-          dotnet test ValheimTune.sln -p:GameManaged="$MANAGED" 2>&1 | tee "$RUNNER_TEMP/test.log"
-          tests=$(grep -oE 'Passed: *[0-9]+' "$RUNNER_TEMP/test.log" | tail -1)
+          # a build or test failure still gets pushed, so the fix can start from the branch
+          set -o pipefail
+          if dotnet test ValheimTune.sln -p:GameManaged="$MANAGED" 2>&1 | tee "$RUNNER_TEMP/test.log"; then
+            tests=$(grep -oE 'Passed: *[0-9]+' "$RUNNER_TEMP/test.log" | tail -1); ok=true
+          else
+            tests="FAILED - build or tests broke against $v, see the port.yml run log"; ok=false
+          fi
           {
             echo "Port to Valheim $v (Steam $BRANCH build ${{ steps.build.outputs.id }}, network version ${{ steps.game.outputs.net }})"
             echo
@@ -167,6 +177,7 @@ jobs:
           git checkout -b "${{ steps.branch.outputs.name }}"
           git commit -am "$(cat "$report")"
           git push origin "${{ steps.branch.outputs.name }}"
+          $ok
 
       - name: Upload patched-method diff
         if: always() && steps.branch.outputs.exists == 'false'

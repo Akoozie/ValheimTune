@@ -59,7 +59,9 @@ decompiles the patched types, `ci/patched-methods.py` cuts out the 18 patched me
 and diffs them against the last known build's (kept in the Actions cache, never
 committed), `ci/port-bump.sh` adds the version to the gate and bumps the plugin, the
 tests run, and branch `port-<game version>` is pushed with the verdict in its commit
-message. README, CHANGELOG and this file are left for review; `check-docs.sh` lists
+message. If a patched method changed, the unified diff of its body is printed in the
+run log and the branch is pushed even when the build or tests break, so the fix can
+start there. README, CHANGELOG and this file are left for review; `check-docs.sh` lists
 the lines. On pull requests and pushes to main the same workflow builds and tests
 against the live server assemblies.
 
