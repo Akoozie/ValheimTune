@@ -805,3 +805,10 @@ twice), decompile in `src_server_1017/`.
 | `CompatTests` / `SmokeTests` retargeted | |
 
 The test host is net8.0; on a machine with only .NET 10, run `DOTNET_ROLL_FORWARD=Major dotnet test`.
+
+| Where | What |
+|---|---|
+| GitHub release | [v0.7.9](https://github.com/Akoozie/ValheimTune/releases/tag/v0.7.9). `ValheimTune.dll` sha256 `8e00c714...` 55,808 B; `ValheimTune-0.7.9.zip` sha256 `cd66d57d...` 49,008 B |
+| Thunderstore | not yet uploaded |
+
+Not verified live.
