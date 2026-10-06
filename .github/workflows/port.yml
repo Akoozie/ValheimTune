@@ -92,7 +92,7 @@ jobs:
       - name: Game version
         id: game
         run: |
-          v=$(grep -oE 'CurrentVersion[^;]*GameVersion\([0-9]+, *[0-9]+, *[0-9]+\)' "$RUNNER_TEMP/src/Version.cs" | grep -oE '[0-9]+, *[0-9]+, *[0-9]+' | tr -d ' ' | tr ',' '.')
+          v=$(grep -oE 'CurrentVersion[^=]*= *new GameVersion\([0-9]+, *[0-9]+, *[0-9]+\)' "$RUNNER_TEMP/src/Version.cs" | grep -oE '[0-9]+, *[0-9]+, *[0-9]+' | tr -d ' ' | tr ',' '.')
           net=$(grep -oE 'c_networkVersion *= *[0-9]+' "$RUNNER_TEMP/src/Version.cs" | grep -oE '[0-9]+$' || echo "?")
           [ -n "$v" ] || { echo "could not read Version.CurrentVersion"; cat "$RUNNER_TEMP/src/Version.cs"; exit 1; }
           builds=$(grep -oE 'DefaultKnownGoodBuilds = "[^"]+"' ValheimTune/Compat.cs | cut -d'"' -f2)
