@@ -2,9 +2,9 @@
 
 # Porting ValheimTune to a new game build (1.0 and every patch after)
 
-The plugin is compiled against one exact dedicated-server build
-(`tools/server-managed/`, build 21981590, game 0.221.12) and patches six
-private game methods by name. A game update can break it three ways. Each has
+The plugin is compiled against one exact dedicated-server build (in this repo
+`lib/server-managed/`; 0.7.9 is built against 1.0.17, build 25730807) and
+patches 18 game methods by name, most of them private. A game update can break it three ways. Each has
 a guard, and together they make an update a non-event: worst case, players get
 vanilla plus the measurement line until the rebuild lands.
 
@@ -13,10 +13,15 @@ vanilla plus the measurement line until the rebuild lands.
 | Break | Symptom | Guard |
 |---|---|---|
 | A patched member is renamed or removed | BepInEx logs a `TypeLoadException` / `MissingMethodException` at load; plugin does not load; server runs vanilla | Loud, safe by accident. The version gate (below) turns it into a clean "unknown build, inactive" line instead. |
-| The constants inside `ZDOMan.SendZDOs` move | `[ValheimTune] SendZDOs window ..., N constants replaced (expected 3)` with N != 3 | Already logged. TODO: abort the swap when N != 3 instead of half-applying. |
-| A method we *replaced* changes behaviour (`SendZDOToPeers2`, `ZRpc.Update`, `CreateSyncList`) | Nothing logs; the old logic silently runs on the new game | **The version gate.** Replacement patches enable only on a known-good build; measurement and the send-rate postfix stay on. |
+| The constants inside `ZDOMan.SendZDOs` move | `[ValheimTune] SendZDOs window ..., N constants replaced (expected 3)` with N != 3 | Logged as an error, and the transpiler returns the method unchanged: it never half-applies. |
+| A method we *replaced* or patched changes behaviour (`SendZDOToPeers2`, `ZRpc.Update`, `CreateSyncList`, and every `[Fixes]` patch) | Nothing logs; the old logic silently runs on the new game | **The version gate.** Replacement patches enable only on a known-good build; measurement, the send-rate postfix and the constant swap stay on. |
 
-## The version gate (to build, ~40 lines)
+## The version gate (built in 0.7.0; this was the spec)
+
+As shipped: the version is `Version.CurrentVersion`, not `GetVersionString()`
+(which can carry a platform prefix), and since 0.7.1 the list in
+`Compat.DefaultKnownGoodBuilds` is a floor that a stale config cannot narrow.
+Every replacement and `[Fixes]` patch checks `Compat.ReplacementsAllowed`.
 
 - Config: `[Compat] KnownGoodBuilds = "0.221.12"` (comma-separated game
   versions from `Version.GetVersionString()`), `[Compat] DisableOnUnknownBuild = true`.
@@ -42,7 +47,7 @@ vanilla plus the measurement line until the rebuild lands.
    decompiles into src_server/, diffs the six patched methods against the previous decompile.
 4. Fix what moved (usually nothing or a constant), add the version to KnownGoodBuilds,
    bump the plugin version, dotnet test.
-5. ./mod/deploy.sh  -> "[ValheimTune] x.y.z loaded, 8 methods patched",
+5. ./mod/deploy.sh  -> "[ValheimTune] x.y.z loaded on game a.b.c (net N), 18 methods patched, replacements on",
    "3 constants replaced (expected 3)", stats line healthy, marks/dirtyRounds non-zero with a player on.
 6. mod/DEPLOY-CHECKLIST.md step 2 numbers again; compare with the results table in OPTIMIZATION.md.
 ```
@@ -60,6 +65,17 @@ Time budget: 30 minutes if nothing moved, an evening if `SendZDOs` or
 6. `ZDO.DataRevision` / `OwnerRevision` setters: if they stop being
    auto-properties the dirty-set hook needs a transpiler on `RPC_ZDOData`
    instead (design already in the B1 plan, Task 2 step 3).
+7. `ZDOMan.CreateNewZDO(ZDOID, Vector3, int)`: the one overload every creation
+   path goes through; dirty sets miss server-created objects if that changes.
+8. `ZDOMan.GetSaveClonePerChunk` and what it calls (`AddObjectsPerChunk`):
+   `SpawnerLinkFix` calls it again after marking chunks dirty, so it relies on
+   that call having no side effects that drop chunks from the second result.
+   1.0.17 changed one line in `AddObjectsPerChunk`.
+9. `ZSteamSocket.Close`: the IL matcher wants exactly one `Thread.Sleep` fed by a
+   constant and one `CloseConnection(..., false)`; anything else leaves it vanilla.
+10. `ZoneSystem.RPC_SetGlobalKey`, `ZDOMan.PrepareSave` / `m_deadZDOs`,
+    `ZDOMan.ServerSortSendZDOS` (the sort key mirrors `ServerSendCompare`),
+    `Heightmap.RebuildRenderMesh`, `Game.CollectResources`.
 
 Everything else the plugin touches is public API that has been stable for
 years (`ZDO.GetPrefab/GetPosition/GetSector`, `ZNetScene.GetPrefab`,
@@ -68,9 +84,10 @@ years (`ZDO.GetPrefab/GetPosition/GetSector`, `ZNetScene.GetPrefab`,
 ## Hotfix discipline
 
 - One change per deploy; read the stats line for two minutes before the next.
-- Every knob defaults to vanilla except the ones proven live (`TargetFrameRate`,
-  `DirtySets`, `AllPeersPerRound`, `SlicedSave`, `TopKSort`); a bad patch is one config line and a
-  restart away from off. `ConfigReloadSeconds` makes runtime knobs live
+- `DirtySets` and `TopKSort` are on by default because they were proven live;
+  the `[Fixes]` bug fixes are on by default too. Everything else defaults to
+  vanilla. (`SlicedSave` existed only on 0.221.12.) A bad patch is one config
+  line, and for patch-time knobs a restart, away from off. `ConfigReloadSeconds` makes runtime knobs live
   without a restart.
 - Keep `tools/server-managed/` and `src_server/` from the build the plugin
   was last verified against, and tag the repo (`git tag v0.5.0-b21981590`)
