@@ -775,3 +775,33 @@ Documentation-only release; code identical to 0.7.7 apart from the version strin
 | GitHub release | [v0.7.8](https://github.com/Akoozie/ValheimTune/releases/tag/v0.7.8). `ValheimTune.dll` sha256 `8043cd81...` 55,808 B; `ValheimTune-0.7.8.zip` sha256 `cea2368c...` 48,859 B |
 | Tag | `v0.7.8-b25527701` in the analysis repo |
 | Thunderstore | `Akoozie-ValheimTune` 0.7.8, uploaded by Akash 2026-09-30 21:12:56Z. Downloaded back: the package is byte-identical to the GitHub zip (`cea2368c...`) and the DLL inside hashes to `8043cd81...`; the version page renders absolute links. The package page is CDN-cached (`s-maxage=300, stale-while-revalidate=600`), so it showed the 0.7.7 README for several minutes after upload |
+
+# What actually happened: 1.0.17, 2026-10-06
+
+Valheim 1.0.17 is dedicated-server build **25730807**, released 2026-10-06,
+game version `1.0.17`, **network version 40 — unchanged**. Assemblies from
+SteamCMD on Linux (`steamcmd.sh`, `+@sSteamCmdForcePlatformType windows`, run
+twice), decompile in `src_server_1017/`.
+
+## The diff
+
+6 files change against 1.0.16, and no patched method is touched:
+
+| File | What |
+|---|---|
+| `ZDOMan.cs` | one line in `AddObjectsPerChunk` (called by `GetSaveClonePerChunk`): a chunk is skipped only if it is clean **and** already in `m_chunkSaveMapping`, so unmapped chunks are written too. Not patched. S2 `SpawnerLinkFix` reads the returned list, so it just sees more chunks written; S1 `SaveDirtyFix` is still needed for mapped chunks only players changed. |
+| `Inventory.cs`, `ItemDrop.cs` | item-type fixes |
+| `ServerJoinDataUtils.cs`, `VariantDialog.cs` | client/UI fixes |
+| `Version.cs` | `CurrentVersion` 1.0.16 -> 1.0.17 only |
+| `ZRpc.cs` `ZSteamSocket.cs` `ZDO.cs` `Game.cs` `Heightmap.cs` `ZoneSystem.cs` | **0** |
+
+## Port status, 1.0.17 (0.7.9)
+
+| Change | Why |
+|---|---|
+| build refs -> `tools/server-managed-1017/` (mirror: `lib/server-managed/` refreshed) | 1.0.17 assemblies |
+| `Compat.DefaultKnownGoodBuilds` -> `1.0.7, 1.0.12, 1.0.14, 1.0.15, 1.0.16, 1.0.17` | gate list, still a floor |
+| version 0.7.8 -> 0.7.9 | |
+| `CompatTests` / `SmokeTests` retargeted | |
+
+The test host is net8.0; on a machine with only .NET 10, run `DOTNET_ROLL_FORWARD=Major dotnet test`.
