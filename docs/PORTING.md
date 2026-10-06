@@ -52,6 +52,17 @@ Every replacement and `[Fixes]` patch checks `Compat.ReplacementsAllowed`.
 6. mod/DEPLOY-CHECKLIST.md step 2 numbers again; compare with the results table in OPTIMIZATION.md.
 ```
 
+Since 0.7.9, `.github/workflows/port.yml` runs steps 3 and 4 in GitHub Actions every
+morning, for the `public` and `public-test` branches: SteamCMD pulls the server
+anonymously into the runner's temp dir (no game DLLs land in the repo), ilspycmd
+decompiles the patched types, `ci/patched-methods.py` cuts out the 18 patched methods
+and diffs them against the last known build's (kept in the Actions cache, never
+committed), `ci/port-bump.sh` adds the version to the gate and bumps the plugin, the
+tests run, and branch `port-<game version>` is pushed with the verdict in its commit
+message. README, CHANGELOG and this file are left for review; `check-docs.sh` lists
+the lines. On pull requests and pushes to main the same workflow builds and tests
+against the live server assemblies.
+
 Time budget: 30 minutes if nothing moved, an evening if `SendZDOs` or
 `CreateSyncList` were rewritten.
 
