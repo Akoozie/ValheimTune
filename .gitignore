@@ -6,3 +6,4 @@ lib/*
 .vs/
 thunderstore/build/
 thunderstore/*.zip
+__pycache__/
