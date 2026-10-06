@@ -38,13 +38,13 @@ Measured on that server, not modelled:
 | | Vanilla | ValheimTune |
 |---|---|---|
 | Sync scan, per player per round | 4.1 ms | **0.07 ms** |
-| Autosave | 381 ms freeze in one frame | **6 ms slices over ~350 frames** |
 | Join sync cost | ~11 ms per call | **~5.5 ms** |
 | Join stream rate | 1,261 objects/s | **3,617 objects/s** |
 | Server frame rate | 30 fps, hard-capped | **60 fps** |
 | Relayed updates, 2 players at a base | baseline | **~55 % fewer** |
 
-Every knob defaults to vanilla except the ones proven live. What each number
+Every sync knob defaults to vanilla except the ones proven live; the `[Fixes]`
+vanilla bug fixes are on by default. What each number
 comes from is in [How it works](#how-it-works).
 
 ## Requirements
@@ -77,7 +77,8 @@ steps below are the normal route.
 ### Recommended settings
 
 What runs on the reference server. Apply one at a time and read the stats line
-between changes. Most knobs take effect within 5 seconds without a restart.
+between changes. Most knobs take effect within 5 seconds without a restart;
+`SendWindowBytes`, `MinHeadroomBytes` and the Steam send rate need one.
 
 ```ini
 [Server]
@@ -222,7 +223,7 @@ only illustrate the format; it has not run on a live server yet.
 | `[Sync] AllPeersPerRound` | false | runtime | Serve every player each round instead of one per frame. Pays off at 4+ players. |
 | `[Sync] RoundSeconds` | 0.05 | runtime | Round period when `AllPeersPerRound` is on. |
 | `[Sync] DirtySets` | **true** | runtime | Only consider changed objects each round. A watchdog falls back to vanilla if the change hook ever goes silent. |
-| `[Sync] ReconcileSeconds` | 30 | per player at connect | Safety-net full scan interval. |
+| `[Sync] ReconcileSeconds` | 30 | runtime | Safety-net full scan interval. |
 | `[Sync] RelayMinIntervalMs` | 0 | runtime | Re-send a non-prioritised object to the same player at most this often. 0 = vanilla. 200 is the tested value. |
 | `[Sync] TopKSort` | **true** | runtime | Bounded-heap selection instead of a full sort of every candidate. |
 | `[Sync] TopK` | 0 | runtime | Candidates ordered per round. 0 = `SendWindowBytes / 64`, never below 64. |
@@ -255,12 +256,15 @@ Each row is one measured problem and the patch that answers it.
 | Every sync round rescans every object near every player | **Dirty sets**: only objects that changed since the last round are considered; full scans only on join, zone change and every 30 s | 4.1 ms -> 0.07 ms per player per round |
 | 10 KB send window and a hidden 150 KB/s per-connection Steam cap | Both raised, all players served every 50 ms instead of one per frame | Join streams 2.8x faster |
 | Every update from every player is relayed to every other nearby player, ~17 times a second for anything that moves | **Relay throttle**: non-prioritised objects (fish, drifting items, pieces) re-sent to a given player at most every 200 ms; players and creatures exempt | ~55 % fewer relays with two players at the base |
-| Autosave clones the whole world on the main thread, then a writer thread reads memory the game keeps changing (a torn-save race) | **Sliced save**: the world is serialised on the main thread in 6 ms slices into a buffer; the writer thread only writes | 381 ms freeze in one frame -> 6 ms slices over ~350 frames |
 | During a join, every candidate object is fully sorted each round to pick the ~300 that fit | **Top-K selection**: a bounded heap keeps the best 512, no allocation | Join sync cost ~11 -> ~5.5 ms per call; closes a vanilla field-table leak on the way |
 | A game update silently runs old patch logic on new code | **Version gate**: replacement patches only run on a build listed in the config; anything else logs a warning and runs vanilla plus measurement | Tested both ways on the live server |
 | Incremental saves only write chunks the *server* changed; builds, chests and signs players changed can be skipped and revert on restart | **Save-dirty fix**: a client update marks its chunk | not measured live |
 | Spawner/creature links get new hashes every save; a link split across two chunks breaks after a restart and the spawner spawns a duplicate | **Spawner-link fix**: both sides are saved together | not measured live |
 | Every disconnect or rejected join sleeps the main thread for 100 ms | **No disconnect sleep**; Steam's linger flushes instead | 100 ms -> 0 per disconnect |
+| Destroyed-object records are kept until restart | **Dead-record prune**: records older than an hour are dropped at each save | not measured live |
+| Mixed-case global keys are re-set and re-broadcast to every player, e.g. every 10 s per unshielded ship in the Ashlands ocean | **Global-key dedupe**: a set that changes nothing is dropped | not measured live |
+| The hourly asset unload stalls the main thread whether or not players are on | **Deferred asset unload** (`DeferAssetUnload`, off by default): held until the server is empty, with a backstop | 443-607 ms stall, now landing with nobody online |
+| A headless server builds a render mesh for every zone a player explores and never draws it | **Skip render mesh** (`SkipRenderMesh`, off by default); collision mesh untouched | counter verified live on 1.0.7; frame cost not measured |
 | Hundreds of item drops and felled logs floating in water forever, each one a sync every round | One-shot scan and optional delete | 1,446 objects removed; idle inbound traffic 800 -> ~650 updates/s |
 
 </details>
@@ -302,9 +306,9 @@ vanilla when it is off. Measurement, the send-rate cap and the constant swap
 run regardless. The constant swap refuses to apply unless it matches exactly
 the three constants it expects.
 
-Pure logic (dirty-set state, the watchdog rule, the slicer, the top-K heap,
-the version check) lives outside `Patches/` and has unit tests that run
-without the game.
+Pure logic (dirty-set state, the watchdog rule, the top-K heap, the version
+check, the constant swap, the disconnect-sleep IL matcher, the asset-unload
+decision) lives outside `Patches/` and has unit tests that run without the game.
 
 ### Deliberate limits
 
@@ -316,7 +320,8 @@ without the game.
 
 ## Building from source
 
-Needs the .NET 8 SDK and the dedicated server's managed assemblies.
+Needs the .NET 8 SDK and the dedicated server's managed assemblies. By default
+the build looks for them in `lib/server-managed/`; `GameManaged` overrides that.
 
 ```
 # point the build at your server's Managed folder (or copy the DLLs somewhere)

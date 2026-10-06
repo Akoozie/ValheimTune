@@ -1,5 +1,5 @@
 #!/bin/sh
-# Assemble the Thunderstore package zip. Run from the repo root:  ./mod/thunderstore/build.sh
+# Assemble the Thunderstore package zip. Run from the repo root:  ./thunderstore/build.sh
 # Thunderstore rules this satisfies: icon.png exactly 256x256, manifest.json at the zip root,
 # README.md at the zip root, and the plugin under plugins/ so mod managers place it in
 # BepInEx/plugins/. Publishing is manual - upload the zip at thunderstore.io.
