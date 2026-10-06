@@ -1,0 +1,178 @@
+name: port
+# Builds and tests against the real dedicated-server assemblies, pulled anonymously with
+# SteamCMD into the runner's temp dir (never into the repo). On the daily schedule it
+# also runs the code side of the release-day loop in docs/PORTING.md: when Steam serves
+# a game version that is not in Compat.DefaultKnownGoodBuilds, it diffs every patched
+# method against the last known build, bumps the gate and plugin version, runs the
+# tests and pushes branch port-<game version>. Docs and the PR are left for review.
+on:
+  schedule:
+    - cron: "41 6 * * *"
+  workflow_dispatch:
+    inputs:
+      steam_branch:
+        description: Steam branch to check
+        type: choice
+        options: [public, public-test]
+        default: public
+  push:
+    branches: [main]
+    paths: ["ValheimTune/**", "ValheimTune.Tests/**", "ci/**", ".github/workflows/port.yml"]
+  pull_request:
+    paths: ["ValheimTune/**", "ValheimTune.Tests/**", "ci/**", ".github/workflows/port.yml"]
+
+permissions:
+  contents: write
+
+jobs:
+  port:
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 1
+      fail-fast: false
+      matrix:
+        steam_branch: ${{ github.event_name == 'schedule' && fromJSON('["public","public-test"]') || fromJSON(format('["{0}"]', inputs.steam_branch || 'public')) }}
+    env:
+      BRANCH: ${{ matrix.steam_branch }}
+      # true only where a new game version may be ported and pushed
+      PORT: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+      DOTNET_ROLL_FORWARD: Major
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: SteamCMD
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq lib32gcc-s1 >/dev/null
+          mkdir -p "$RUNNER_TEMP/steamcmd"
+          curl -fsSL https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz | tar xz -C "$RUNNER_TEMP/steamcmd"
+          echo "STEAMCMD=$RUNNER_TEMP/steamcmd/steamcmd.sh" >> "$GITHUB_ENV"
+          # a fresh SteamCMD only self-updates on its first run (docs/PORTING.md, 1.0.14)
+          "$RUNNER_TEMP/steamcmd/steamcmd.sh" +quit || true
+
+      - name: Server build id
+        id: build
+        run: |
+          "$STEAMCMD" +login anonymous +app_info_update 1 +app_info_print 896660 +quit > "$RUNNER_TEMP/appinfo.txt" || true
+          id=$(python3 ci/steam-buildid.py "$RUNNER_TEMP/appinfo.txt" "$BRANCH")
+          echo "Steam $BRANCH build: $id"
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+          echo "MANAGED=$RUNNER_TEMP/server/valheim_server_Data/Managed" >> "$GITHUB_ENV"
+
+      - name: Cached server assemblies
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/server/valheim_server_Data/Managed
+          key: server-${{ env.BRANCH }}-${{ steps.build.outputs.id == 'unknown' && github.run_id || steps.build.outputs.id }}
+
+      - name: Download dedicated server
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          beta=()
+          [ "$BRANCH" = public-test ] && beta=(-beta public-test -betapassword yesimadebackups)
+          for try in 1 2; do
+            "$STEAMCMD" +@sSteamCmdForcePlatformType windows +force_install_dir "$RUNNER_TEMP/server" \
+              +login anonymous +app_update 896660 "${beta[@]}" validate +quit && [ -f "$MANAGED/assembly_valheim.dll" ] && break
+          done
+          [ -f "$MANAGED/assembly_valheim.dll" ] || { echo "SteamCMD did not deliver assembly_valheim.dll"; exit 1; }
+
+      - name: Decompile patched types
+        run: |
+          dotnet tool install --tool-path "$RUNNER_TEMP/tools" ilspycmd >/dev/null
+          mkdir -p "$RUNNER_TEMP/src"
+          for t in Version $(python3 -c "import importlib.util as u; s=u.spec_from_file_location('p','ci/patched-methods.py'); m=u.module_from_spec(s); s.loader.exec_module(m); print(' '.join(sorted({t for t,_ in m.targets()})))"); do
+            "$RUNNER_TEMP/tools/ilspycmd" -t "$t" -r "$MANAGED" "$MANAGED/assembly_valheim.dll" > "$RUNNER_TEMP/src/$t.cs"
+          done
+          python3 ci/patched-methods.py "$RUNNER_TEMP/src" "$RUNNER_TEMP/patched"
+
+      - name: Game version
+        id: game
+        run: |
+          v=$(grep -oE 'CurrentVersion[^=]*= *new GameVersion\([0-9]+, *[0-9]+, *[0-9]+\)' "$RUNNER_TEMP/src/Version.cs" | grep -oE '[0-9]+, *[0-9]+, *[0-9]+' | tr -d ' ' | tr ',' '.')
+          net=$(grep -oE 'c_networkVersion *= *[0-9]+' "$RUNNER_TEMP/src/Version.cs" | grep -oE '[0-9]+$' || echo "?")
+          [ -n "$v" ] || { echo "could not read Version.CurrentVersion"; cat "$RUNNER_TEMP/src/Version.cs"; exit 1; }
+          builds=$(grep -oE 'DefaultKnownGoodBuilds = "[^"]+"' ValheimTune/Compat.cs | cut -d'"' -f2)
+          newest=$(echo "$builds" | tr ',' '\n' | tr -d ' ' | sort -V | tail -1)
+          known=$(echo "$builds" | tr ',' '\n' | tr -d ' ' | grep -qx "$v" && echo true || echo false)
+          echo "Steam $BRANCH serves game $v (network version $net, build ${{ steps.build.outputs.id }}); gate: $builds; known: $known"
+          { echo "version=$v"; echo "net=$net"; echo "known=$known"; echo "newest=$newest"; } >> "$GITHUB_OUTPUT"
+
+      - name: Build and test (as committed)
+        if: steps.game.outputs.known == 'true' || env.PORT != 'true'
+        run: dotnet test ValheimTune.sln -p:GameManaged="$MANAGED"
+
+      # The decompiled methods of each known build are kept only in the Actions cache,
+      # as the baseline the next port diffs against.
+      - name: Save baseline for ${{ steps.game.outputs.version }}
+        if: steps.game.outputs.known == 'true' && github.event_name != 'pull_request'
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/patched
+          key: patched-${{ steps.game.outputs.version }}
+
+      - name: Already ported?
+        id: branch
+        if: steps.game.outputs.known == 'false' && env.PORT == 'true'
+        run: |
+          b="port-${{ steps.game.outputs.version }}"
+          echo "name=$b" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --heads origin "$b" >/dev/null; then
+            echo "branch $b already exists - nothing to do"; echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Restore baseline ${{ steps.game.outputs.newest }}
+        if: steps.branch.outputs.exists == 'false'
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/baseline
+          key: patched-${{ steps.game.outputs.newest }}
+
+      - name: Port to ${{ steps.game.outputs.version }}
+        if: steps.branch.outputs.exists == 'false'
+        run: |
+          v=${{ steps.game.outputs.version }}
+          old=${{ steps.game.outputs.newest }}
+          base="$RUNNER_TEMP/baseline/patched"
+          report="$RUNNER_TEMP/report.md"
+          if [ ! -d "$base" ]; then
+            verdict="NO BASELINE: the $old methods were not cached, so the patched methods were not diffed. Diff them by hand."
+          elif diff -r "$base" "$RUNNER_TEMP/patched" > "$RUNNER_TEMP/patched-methods.diff"; then
+            verdict="All $(ls "$RUNNER_TEMP/patched" | wc -l) patched methods are identical to $old."
+          else
+            changed=$(diff -rq "$base" "$RUNNER_TEMP/patched" | sed -E 's|.*/([^/ ]+)\.cs.*|\1|' | sort -u | tr '\n' ' ')
+            verdict="NEEDS REVIEW: patched methods changed since $old: $changed"
+          fi
+          echo "$verdict"
+          ci/port-bump.sh "$v"
+          dotnet test ValheimTune.sln -p:GameManaged="$MANAGED" 2>&1 | tee "$RUNNER_TEMP/test.log"
+          tests=$(grep -oE 'Passed: *[0-9]+' "$RUNNER_TEMP/test.log" | tail -1)
+          {
+            echo "Port to Valheim $v (Steam $BRANCH build ${{ steps.build.outputs.id }}, network version ${{ steps.game.outputs.net }})"
+            echo
+            echo "$verdict"
+            echo "Tests: $tests"
+            echo
+            echo "Code only: README, CHANGELOG and docs/PORTING.md still need their entries (check-docs.sh lists them)."
+          } > "$report"
+          cat "$report" >> "$GITHUB_STEP_SUMMARY"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "${{ steps.branch.outputs.name }}"
+          git commit -am "$(cat "$report")"
+          git push origin "${{ steps.branch.outputs.name }}"
+
+      - name: Upload patched-method diff
+        if: always() && steps.branch.outputs.exists == 'false'
+        uses: actions/upload-artifact@v4
+        with:
+          name: patched-methods-${{ steps.game.outputs.version }}
+          path: ${{ runner.temp }}/patched-methods.diff
+          if-no-files-found: ignore
+          retention-days: 30
