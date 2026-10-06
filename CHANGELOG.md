@@ -1,13 +1,37 @@
 # Changelog
 
-0.7.8 targets dedicated-server build 25527701 (game 1.0.16, network version
-40), the same build as 0.7.5 to 0.7.7, and remains valid for 1.0.15, 1.0.14, 1.0.12 and
-1.0.7. 0.7.4 targets
+0.7.9 targets dedicated-server build 25730807 (game 1.0.17, network version
+40) and remains valid for 1.0.16, 1.0.15, 1.0.14, 1.0.12 and 1.0.7. 0.7.5 to
+0.7.8 target build 25527701 (game 1.0.16, network version 40). 0.7.4 targets
 build 25390671 (game 1.0.15, network version 40). 0.7.3 targets build
 25364309 (game 1.0.14, network version 40). 0.7.1 targets build 25253791 (game
 1.0.12, network version 40). 0.7.0 targets build 25185644 (game 1.0.7, network
 version 39). 0.6.0 and earlier target build 21981590 (game 0.221.12, network
 version 36).
+
+## 0.7.9 - 2026-10-06
+
+Compatibility rebuild for Valheim 1.0.17 (dedicated-server build 25730807).
+No behaviour change; the code is 0.7.8's.
+
+**Why you want it:** on 1.0.17, 0.7.8 does not list the build in
+`KnownGoodBuilds`, so with the default `DisableOnUnknownBuild = true` every
+replacement patch and every `[Fixes]` fix falls back to vanilla and only the
+stats line keeps running. 0.7.9 adds 1.0.17 to the shipped list. No config
+edit needed.
+
+**Network version is still 40**, so 1.0.17 locks no one out.
+
+**Not verified live.** A decompile diff of 1.0.17 against 1.0.16 changes 6
+files: `Inventory.cs`, `ItemDrop.cs`, `ServerJoinDataUtils.cs`,
+`VariantDialog.cs`, `Version.cs` and one line of `ZDOMan.cs`. That line is in
+`AddObjectsPerChunk`, which `GetSaveClonePerChunk` calls: the incremental save
+now also writes chunks missing from the chunk save mapping, not only dirty
+ones. The plugin does not patch that method. `SpawnerLinkFix` reads the
+chunk list it returns, so it simply sees more chunks written; `SaveDirtyFix`
+is still needed, because a player edit in a chunk that is already mapped is
+still skipped unless something marks it dirty. Every other file the plugin
+patches is unchanged.
 
 ## 0.7.8 - 2026-10-01
 
