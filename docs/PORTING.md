@@ -842,3 +842,41 @@ The test host is net8.0; on a machine with only .NET 10, run `DOTNET_ROLL_FORWAR
 | Thunderstore | not yet uploaded |
 
 Not verified live.
+
+# What actually happened: 1.0.20, 2026-10-15
+
+Valheim 1.0.20 is dedicated-server build **25909431**, released 2026-10-15,
+game version `1.0.20`, **network version 41 (was 40)**, so clients must
+update too. [Patch notes](https://www.valheimgame.com/news/patch-1-0-20):
+trophy drops scale with star level, pseudo-random drops persist across
+sessions, a Forge of Potential exploit, the cheated flag cleared on all
+items and pieces from earlier versions, and a dedicated server running
+uncapped when a client on the same machine had v-sync on.
+
+First port done by `port.yml` in GitHub Actions. The scheduled run reported
+NO BASELINE: the `patched-1.0.17` Actions cache had been evicted (GitHub drops
+caches not read for 7 days, and known-build runs only ever saved it). The
+1.0.17 server assemblies were still cached (`server-public-25730807`, read
+daily), so a one-off workflow decompiled both builds and diffed them.
+
+## The diff
+
+All 18 patched methods are identical. Inside the patched types:
+
+| File | What |
+|---|---|
+| `Version.cs` | `CurrentVersion` 1.0.17 -> 1.0.20, `c_networkVersion` 40 -> 41, new `CheatCleanSlate` world/player versions, `NewCheats` item version, `PostLaunch` player-data version |
+| `ZDOMan.cs` | `SaveChunk` writes chunk format 42 (was 41); the old-item conversion reads and removes the cheated flag through `ZDO.IsCheated` / `RemoveCheated`. Neither method is patched |
+| `ZoneSystem.cs` | one spawn line sets the cheated flag through `ZDO.SetCheated`. Not patched |
+| `ZRpc.cs` `ZSteamSocket.cs` `ZDO.cs` `Game.cs` `Heightmap.cs` | **0** in the decompiled patched types |
+
+## Port status, 1.0.20 (0.7.10)
+
+| Change | Why |
+|---|---|
+| `Compat.DefaultKnownGoodBuilds` -> `1.0.7, 1.0.12, 1.0.14, 1.0.15, 1.0.16, 1.0.17, 1.0.20` | gate list, still a floor |
+| version 0.7.9 -> 0.7.10 | |
+| `CompatTests` / `SmokeTests` retargeted | |
+
+53/53 tests against the 1.0.20 assemblies in CI. Not verified live.
+
