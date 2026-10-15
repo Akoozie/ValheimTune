@@ -99,6 +99,10 @@ jobs:
           builds=$(grep -oE 'DefaultKnownGoodBuilds = "[^"]+"' ValheimTune/Compat.cs | cut -d'"' -f2)
           newest=$(echo "$builds" | tr ',' '\n' | tr -d ' ' | sort -V | tail -1)
           known=$(echo "$builds" | tr ',' '\n' | tr -d ' ' | grep -qx "$v" && echo true || echo false)
+          # a branch can lag behind (public-test sat on 0.221.13 long after 1.0): only newer builds get ported
+          if [ "$known" = false ] && [ "$(printf '%s\n%s\n' "$v" "$newest" | sort -V | tail -1)" = "$newest" ]; then
+            known=older
+          fi
           echo "Steam $BRANCH serves game $v (network version $net, build ${{ steps.build.outputs.id }}); gate: $builds; known: $known"
           { echo "version=$v"; echo "net=$net"; echo "known=$known"; echo "newest=$newest"; } >> "$GITHUB_OUTPUT"
 
