@@ -107,11 +107,12 @@ jobs:
         run: dotnet test ValheimTune.sln -p:GameManaged="$MANAGED"
 
       # The decompiled methods of each known build are kept only in the Actions cache,
-      # as the baseline the next port diffs against.
-      - name: Save baseline for ${{ steps.game.outputs.version }}
+      # as the baseline the next port diffs against. GitHub evicts a cache nobody has
+      # read for 7 days, so every run restores it (and saves it on a miss) to keep it.
+      - name: Keep baseline for ${{ steps.game.outputs.version }}
         if: steps.game.outputs.known == 'true' && github.event_name != 'pull_request'
         continue-on-error: true
-        uses: actions/cache/save@v4
+        uses: actions/cache@v4
         with:
           path: ${{ runner.temp }}/patched
           key: patched-${{ steps.game.outputs.version }}
