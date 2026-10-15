@@ -1,13 +1,36 @@
 # Changelog
 
-0.7.9 targets dedicated-server build 25730807 (game 1.0.17, network version
-40) and remains valid for 1.0.16, 1.0.15, 1.0.14, 1.0.12 and 1.0.7. 0.7.5 to
+0.7.10 targets dedicated-server build 25909431 (game 1.0.20, network version
+41) and remains valid for 1.0.17, 1.0.16, 1.0.15, 1.0.14, 1.0.12 and 1.0.7.
+0.7.9 targets build 25730807 (game 1.0.17, network version 40). 0.7.5 to
 0.7.8 target build 25527701 (game 1.0.16, network version 40). 0.7.4 targets
 build 25390671 (game 1.0.15, network version 40). 0.7.3 targets build
 25364309 (game 1.0.14, network version 40). 0.7.1 targets build 25253791 (game
 1.0.12, network version 40). 0.7.0 targets build 25185644 (game 1.0.7, network
 version 39). 0.6.0 and earlier target build 21981590 (game 0.221.12, network
 version 36).
+
+## 0.7.10 - 2026-10-15
+
+Compatibility rebuild for Valheim 1.0.20 (dedicated-server build 25909431).
+No behaviour change; the code is 0.7.9's.
+
+**Why you want it:** on 1.0.20, 0.7.9 does not list the build in
+`KnownGoodBuilds`, so with the default `DisableOnUnknownBuild = true` every
+replacement patch and every `[Fixes]` fix falls back to vanilla and only the
+stats line keeps running. 0.7.10 adds 1.0.20 to the shipped list. No config
+edit needed.
+
+**Network version is now 41.** Players have to update their game to 1.0.20
+to join a 1.0.20 server; that is the game's rule, not the plugin's. Players
+still install nothing for ValheimTune.
+
+**Not verified live.** All 18 patched methods are identical between 1.0.17
+and 1.0.20 (decompile diff). Outside them, the patched classes change in
+three places: `Version.cs` (new save-format versions for the cheated-flag
+reset in the patch notes), `ZDOMan.SaveChunk` (writes chunk format 42
+instead of 41) and two `ZDOMan`/`ZoneSystem` lines that now set and read the
+cheated flag through new helpers. The plugin touches none of them.
 
 ## 0.7.9 - 2026-10-06
 
