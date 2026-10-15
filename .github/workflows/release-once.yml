@@ -1,0 +1,42 @@
+name: release-once
+# temporary: build and publish v0.7.10 from main at b2c467d0fa51eb40ac2ecf06e8c3e399c9db9441
+on:
+  push:
+    branches: [release-0.7.10]
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      DOTNET_ROLL_FORWARD: Major
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: b2c467d0fa51eb40ac2ecf06e8c3e399c9db9441
+      - uses: actions/checkout@v4
+        with:
+          path: notes
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Server assemblies (1.0.20, build 25909431)
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/server/valheim_server_Data/Managed
+          key: server-public-25909431
+          fail-on-cache-miss: true
+      - name: Build, test, package
+        run: |
+          M="$RUNNER_TEMP/server/valheim_server_Data/Managed"
+          dotnet test ValheimTune.sln -p:GameManaged="$M"
+          dotnet build ValheimTune/ValheimTune.csproj -c Release -p:GameManaged="$M"
+          mkdir -p "$HOME/.local/bin" && ln -sf "$(command -v python3)" "$HOME/.local/bin/python" && export PATH="$HOME/.local/bin:$PATH"
+          sh thunderstore/build.sh
+          cp ValheimTune/bin/Release/netstandard2.1/ValheimTune.dll .
+          sha256sum ValheimTune.dll thunderstore/ValheimTune-0.7.10.zip
+      - name: Publish
+        run: |
+          gh release create v0.7.10 --target b2c467d0fa51eb40ac2ecf06e8c3e399c9db9441 --title "0.7.10 - Valheim 1.0.20" \
+            --notes-file notes/release-notes.md ValheimTune.dll thunderstore/ValheimTune-0.7.10.zip
