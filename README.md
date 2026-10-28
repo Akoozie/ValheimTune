@@ -1,14 +1,14 @@
 # ValheimTune
 
-> ### ✅ Valheim 1.0.20 ready
-> **0.7.10 runs on game 1.0.20 (network version 41)**, and still on 1.0.17, 1.0.16,
-> 1.0.15, 1.0.14 and 1.0.12 (40) and 1.0.7 (39). 0.7.10 is 0.7.9 rebuilt for 1.0.20;
+> ### ✅ Valheim 1.0.21 ready
+> **0.7.11 runs on game 1.0.21 (network version 41)**, and still on 1.0.20 (41), 1.0.17,
+> 1.0.16, 1.0.15, 1.0.14 and 1.0.12 (40) and 1.0.7 (39). 0.7.11 is 0.7.10 rebuilt for 1.0.21;
 > 0.7.7 fixed three vanilla bugs any 1.0
 > server has — player edits skipped by the incremental save, spawners duplicating
 > creatures after a restart, and a 100 ms server freeze on every disconnect — plus
-> two sync gaps found in review. It has **not** been booted on 1.0.20 — read the
+> two sync gaps found in review. It has **not** been booted on 1.0.21 — read the
 > [CHANGELOG](https://github.com/Akoozie/ValheimTune/blob/main/CHANGELOG.md) before you deploy it.
-> Upgrading from [0.7.6 to 0.7.9](https://github.com/Akoozie/ValheimTune/releases) needs no config edit.
+> Upgrading from [0.7.6 to 0.7.10](https://github.com/Akoozie/ValheimTune/releases) needs no config edit.
 > Running game 0.221.12? Use [0.6.0](https://github.com/Akoozie/ValheimTune/releases/tag/v0.6.0) instead — the
 > version gate will refuse to apply these patches to an older build.
 >
@@ -21,12 +21,12 @@ like a small one.
 the wire format is untouched, and vanilla clients connect exactly as before.
 
 ```
-game     1.0.20 (network version 41), 1.0.17, 1.0.16, 1.0.15, 1.0.14 and 1.0.12 (40), 1.0.7 (39), dedicated server only
+game     1.0.21 and 1.0.20 (network version 41), 1.0.17, 1.0.16, 1.0.15, 1.0.14 and 1.0.12 (40), 1.0.7 (39), dedicated server only
 needs    BepInEx 5.4.x
-status   0.7.10 (= 0.7.7 code) is the 1.0.20 rebuild with 0.7.7's vanilla bug fixes. Every method this
-         plugin patches is byte-identical between 1.0.17 and 1.0.20
-         (decompile diff), it compiles against the 1.0.20 assemblies and
-         its unit tests pass - but it has NOT been booted on 1.0.20. 0.7.0
+status   0.7.11 (= 0.7.7 code) is the 1.0.21 rebuild with 0.7.7's vanilla bug fixes. Every method this
+         plugin patches is byte-identical between 1.0.20 and 1.0.21
+         (decompile diff), it compiles against the 1.0.21 assemblies and
+         its unit tests pass - but it has NOT been booted on 1.0.21. 0.7.0
          WAS verified live on 1.0.7, 2026-09-09: 698,000 objects, a
          12,000-instance base, 2-6 players.
 ```
@@ -51,7 +51,7 @@ comes from is in [How it works](#how-it-works).
 
 - Valheim **dedicated server** (Steam app 896660). Not the in-client host.
 - BepInEx 5.4.x for Valheim ([BepInExPack_Valheim](https://thunderstore.io/c/valheim/p/denikson/BepInExPack_Valheim/)).
-- Game version listed in `[Compat] KnownGoodBuilds` (currently `1.0.7, 1.0.12, 1.0.14, 1.0.15, 1.0.16, 1.0.17, 1.0.20`).
+- Game version listed in `[Compat] KnownGoodBuilds` (currently `1.0.7, 1.0.12, 1.0.14, 1.0.15, 1.0.16, 1.0.17, 1.0.20, 1.0.21`).
   On any other version the plugin runs in vanilla + measurement mode and says
   so in the log.
 
@@ -70,7 +70,7 @@ steps below are the normal route.
 4. Check the log for:
 
 ```
-[ValheimTune] 0.7.10 loaded on game 1.0.20 (net 41), 18 methods patched, replacements on
+[ValheimTune] 0.7.11 loaded on game 1.0.21 (net 41), 18 methods patched, replacements on
 [ValheimTune] SendZDOs window 10240/2048, 3 constants replaced (expected 3)
 ```
 
@@ -106,8 +106,8 @@ list shipped in the release is treated as a floor, and your config can only
 *add* to it. You will see this once on boot:
 
 ```
-[ValheimTune] game 1.0.20 is not in your KnownGoodBuilds (1.0.7) but ships in
-this release (1.0.7, 1.0.12, 1.0.14, 1.0.15, 1.0.16, 1.0.17, 1.0.20); using the shipped list. Your config is
+[ValheimTune] game 1.0.21 is not in your KnownGoodBuilds (1.0.7) but ships in
+this release (1.0.7, 1.0.12, 1.0.14, 1.0.15, 1.0.16, 1.0.17, 1.0.20, 1.0.21); using the shipped list. Your config is
 from an older version.
 ```
 
@@ -116,7 +116,7 @@ Tidy the line up if you like; nothing depends on it.
 ### If the log says `replacements OFF`
 
 ```
-[ValheimTune] game 1.0.21 not in KnownGoodBuilds (1.0.7, 1.0.12, 1.0.14, 1.0.15, 1.0.16, 1.0.17, 1.0.20):
+[ValheimTune] game 1.0.22 not in KnownGoodBuilds (1.0.7, 1.0.12, 1.0.14, 1.0.15, 1.0.16, 1.0.17, 1.0.20, 1.0.21):
 replacement patches inactive, running vanilla + measurement
 ```
 
@@ -137,7 +137,7 @@ you keep the diagnostics.
 
 ```ini
 [Compat]
-KnownGoodBuilds = 1.0.7, 1.0.12, 1.0.14, 1.0.15, 1.0.16, 1.0.17, 1.0.20, 1.0.21
+KnownGoodBuilds = 1.0.7, 1.0.12, 1.0.14, 1.0.15, 1.0.16, 1.0.17, 1.0.20, 1.0.21, 1.0.22
 ```
 
 Restart. Harmony will refuse to patch any method whose signature changed and log
@@ -238,7 +238,7 @@ only illustrate the format; it has not run on a live server yet.
 | `[Fixes] GlobalKeyDedupe` | **true** | runtime | Ignore a global-key set that changes nothing (vanilla re-broadcasts every key to every player, e.g. every 10 s per ship in the Ashlands ocean). |
 | `[Cleanup] FloatingDropsRun` | false | one-shot | Set true to scan for item drops and felled logs floating in water. Resets itself. Dry run unless the next key is true. ~50 ms main-thread stall on a 698k-ZDO world. |
 | `[Cleanup] FloatingDropsDelete` | false | runtime | With `Run`: delete what the scan finds. Hourly backups first. |
-| `[Compat] KnownGoodBuilds` | 1.0.7, 1.0.12, 1.0.14, 1.0.15, 1.0.16, 1.0.17, 1.0.20 | patch-time | Game versions this plugin build was verified against. Comma-separated. |
+| `[Compat] KnownGoodBuilds` | 1.0.7, 1.0.12, 1.0.14, 1.0.15, 1.0.16, 1.0.17, 1.0.20, 1.0.21 | patch-time | Game versions this plugin build was verified against. Comma-separated. |
 | `[Compat] DisableOnUnknownBuild` | true | patch-time | On an unlisted version, run only measurement, the send-rate cap and the constant swap. |
 
 </details>
