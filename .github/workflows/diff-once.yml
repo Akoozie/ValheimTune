@@ -10,7 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DOTNET_ROLL_FORWARD: Major
-      MANAGED: ${{ runner.temp }}/server/valheim_server_Data/Managed
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
