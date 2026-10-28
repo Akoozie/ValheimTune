@@ -1,7 +1,8 @@
 # Changelog
 
-0.7.10 targets dedicated-server build 25909431 (game 1.0.20, network version
-41) and remains valid for 1.0.17, 1.0.16, 1.0.15, 1.0.14, 1.0.12 and 1.0.7.
+0.7.11 targets dedicated-server build 26266951 (game 1.0.21, network version
+41) and remains valid for 1.0.20, 1.0.17, 1.0.16, 1.0.15, 1.0.14, 1.0.12 and
+1.0.7. 0.7.10 targets build 25909431 (game 1.0.20, network version 41).
 0.7.9 targets build 25730807 (game 1.0.17, network version 40). 0.7.5 to
 0.7.8 target build 25527701 (game 1.0.16, network version 40). 0.7.4 targets
 build 25390671 (game 1.0.15, network version 40). 0.7.3 targets build
@@ -9,6 +10,23 @@ build 25390671 (game 1.0.15, network version 40). 0.7.3 targets build
 1.0.12, network version 40). 0.7.0 targets build 25185644 (game 1.0.7, network
 version 39). 0.6.0 and earlier target build 21981590 (game 0.221.12, network
 version 36).
+
+## 0.7.11 - 2026-10-28
+
+Compatibility rebuild for Valheim 1.0.21 (dedicated-server build 26266951).
+No behaviour change; the code is 0.7.10's.
+
+**Why you want it:** on 1.0.21, 0.7.10 does not list the build in
+`KnownGoodBuilds`, so with the default `DisableOnUnknownBuild = true` every
+replacement patch and every `[Fixes]` fix falls back to vanilla and only the
+stats line keeps running. 0.7.11 adds 1.0.21 to the shipped list. No config
+edit needed.
+
+**Network version is still 41**, so 1.0.21 locks no 1.0.20 player out.
+
+**Not verified live.** All 18 patched methods are identical between 1.0.20
+and 1.0.21 (decompile diff), and so is every other line of the patched
+classes except the version number in `Version.cs`.
 
 ## 0.7.10 - 2026-10-15
 

@@ -880,3 +880,39 @@ All 18 patched methods are identical. Inside the patched types:
 
 53/53 tests against the 1.0.20 assemblies in CI. Not verified live.
 
+
+# What actually happened: 1.0.21, 2026-10-28
+
+Valheim 1.0.21 is dedicated-server build **26266951**, released 2026-10-28,
+game version `1.0.21`, **network version 41 (unchanged)**.
+[Patch notes](https://www.valheimgame.com/news/patch-1-0-21): a long list of
+gameplay tweaks and bug fixes (food recipes moved to the Food Preparation
+table, wolves no longer breed, Moose and Kall Fimbulbringer tuning), rare
+crashes fixed "mostly in multiplayer", a Frost Foundry crafter fix when another
+player owns it, and a Steam save-caching fix for worlds edited outside the
+game. Nothing about dedicated servers or networking internals.
+
+The scheduled run said NO BASELINE again, although the `patched-1.0.20` cache
+was there (the run the day before read it). The real cause, and the real cause
+on 1.0.20 too: `actions/cache` only finds an entry under the same `path` it was
+saved with, and the restore step asked for `baseline` while the keep step
+saves `patched`. Eviction was not the problem on 1.0.20 (PR #11 still helps:
+it keeps the entry from expiring). The port workflow now sets the new methods
+aside and restores the baseline to the path it was saved from. Both server
+builds were cached (`server-public-25909431`, `server-public-26266951`), so a
+one-off workflow decompiled both and diffed them.
+
+## The diff
+
+All 18 patched methods are identical. In the whole decompiled patched types the
+only change is `Version.CurrentVersion` 1.0.20 -> 1.0.21.
+
+## Port status, 1.0.21 (0.7.11)
+
+| Change | Why |
+|---|---|
+| `Compat.DefaultKnownGoodBuilds` -> `1.0.7, 1.0.12, 1.0.14, 1.0.15, 1.0.16, 1.0.17, 1.0.20, 1.0.21` | gate list, still a floor |
+| version 0.7.10 -> 0.7.11 | |
+| `CompatTests` / `SmokeTests` retargeted | |
+
+53/53 tests against the 1.0.21 assemblies in CI. Not verified live.
