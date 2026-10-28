@@ -133,11 +133,17 @@ jobs:
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
 
+      # actions/cache only finds an entry under the path it was saved with, so the new
+      # methods move aside and the baseline comes back to the same path it was kept from.
+      - name: Set the new methods aside
+        if: steps.branch.outputs.exists == 'false'
+        run: mv "$RUNNER_TEMP/patched" "$RUNNER_TEMP/new"
+
       - name: Restore baseline ${{ steps.game.outputs.newest }}
         if: steps.branch.outputs.exists == 'false'
         uses: actions/cache/restore@v4
         with:
-          path: ${{ runner.temp }}/baseline
+          path: ${{ runner.temp }}/patched
           key: patched-${{ steps.game.outputs.newest }}
 
       - name: Port to ${{ steps.game.outputs.version }}
@@ -145,14 +151,15 @@ jobs:
         run: |
           v=${{ steps.game.outputs.version }}
           old=${{ steps.game.outputs.newest }}
-          base="$RUNNER_TEMP/baseline/patched"
+          base="$RUNNER_TEMP/patched"
+          new="$RUNNER_TEMP/new"
           report="$RUNNER_TEMP/report.md"
           if [ ! -d "$base" ]; then
             verdict="NO BASELINE: the $old methods were not cached, so the patched methods were not diffed. Diff them by hand."
-          elif diff -ru "$base" "$RUNNER_TEMP/patched" > "$RUNNER_TEMP/patched-methods.diff"; then
-            verdict="All $(ls "$RUNNER_TEMP/patched" | wc -l) patched methods are identical to $old."
+          elif diff -ru "$base" "$new" > "$RUNNER_TEMP/patched-methods.diff"; then
+            verdict="All $(ls "$new" | wc -l) patched methods are identical to $old."
           else
-            changed=$(diff -rq "$base" "$RUNNER_TEMP/patched" | grep -oE '[A-Za-z_]+\.[A-Za-z_0-9]+\.cs' | sed 's/\.cs$//' | sort -u | tr '\n' ' ')
+            changed=$(diff -rq "$base" "$new" | grep -oE '[A-Za-z_]+\.[A-Za-z_0-9]+\.cs' | sed 's/\.cs$//' | sort -u | tr '\n' ' ')
             verdict="NEEDS REVIEW: patched methods changed since $old: $changed"
             # unified diff of the changed bodies, for whoever adapts the patches (the daily routine reads this log)
             echo "::group::patched-method diff $old -> $v"
